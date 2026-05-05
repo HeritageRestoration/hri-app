@@ -10,8 +10,10 @@ const { startScheduler } = require('./lib/scheduler');
 const { buildExportRows, rowsToCSV } = require('./lib/qbexport');
 
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
+// Railway proxy support — needed for WebSocket upgrades and correct host detection
+app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.json({ limit: '2mb' }));
@@ -291,7 +293,17 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 //  JOB BOARD WEBSOCKET (exact same logic as original)
 // ══════════════════════════════════════════════════════════════════════════════
 const httpServer = http.createServer(app);
-const wss = new WebSocketServer({ server: httpServer });
+const wss = new WebSocketServer({ 
+  server: httpServer,
+  perMessageDeflate: false // disable compression for Railway proxy compatibility
+});
+
+// Explicitly handle WebSocket upgrade requests (needed for some Railway configs)
+httpServer.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
 const clients = new Set();
 let appData = null;
 
