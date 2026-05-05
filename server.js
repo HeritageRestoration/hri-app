@@ -295,14 +295,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 const httpServer = http.createServer(app);
 const wss = new WebSocketServer({ 
   server: httpServer,
-  perMessageDeflate: false // disable compression for Railway proxy compatibility
-});
-
-// Explicitly handle WebSocket upgrade requests (needed for some Railway configs)
-httpServer.on('upgrade', (request, socket, head) => {
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
-  });
+  perMessageDeflate: false
 });
 const clients = new Set();
 let appData = null;
