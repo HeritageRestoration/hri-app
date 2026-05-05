@@ -717,29 +717,31 @@ function openCustPopup(idx) {
   document.getElementById('custPopupBg').classList.add('open');
 }
 function closeCustPopup() { document.getElementById('custPopupBg').classList.remove('open'); custPopupIdx = null; }
-document.getElementById('cpSaveBtn').addEventListener('click', async () => {
-  if (custPopupIdx === null) return;
-  const address = document.getElementById('cpAddress').value.trim();
-  const phone   = document.getElementById('cpPhone').value.trim();
-  const jobName = state.jobs[custPopupIdx]?.name;
-  // Update local state
-  state.jobs[custPopupIdx].address = address;
-  state.jobs[custPopupIdx].phone   = phone;
-  // Send to server
-  try {
-    await fetch('/admin/customer/update', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ jobName, address, phone })
-    });
-    document.getElementById('cpSaved').style.display = '';
-    setTimeout(() => document.getElementById('cpSaved').style.display = 'none', 2000);
-    renderBoard();
-  } catch(e) { alert('Save failed — please try again'); }
-});
-document.getElementById('cpCancelBtn').addEventListener('click', closeCustPopup);
-document.getElementById('custPopupBg').addEventListener('click', e => {
-  if (e.target === document.getElementById('custPopupBg')) closeCustPopup();
+
+// Wait for DOM to be ready before attaching popup listeners
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cpSaveBtn').addEventListener('click', async () => {
+    if (custPopupIdx === null) return;
+    const address = document.getElementById('cpAddress').value.trim();
+    const phone   = document.getElementById('cpPhone').value.trim();
+    const jobName = state.jobs[custPopupIdx]?.name;
+    state.jobs[custPopupIdx].address = address;
+    state.jobs[custPopupIdx].phone   = phone;
+    try {
+      await fetch('/admin/customer/update', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ jobName, address, phone })
+      });
+      document.getElementById('cpSaved').style.display = '';
+      setTimeout(() => document.getElementById('cpSaved').style.display = 'none', 2000);
+      renderBoard();
+    } catch(e) { alert('Save failed — please try again'); }
+  });
+  document.getElementById('cpCancelBtn').addEventListener('click', closeCustPopup);
+  document.getElementById('custPopupBg').addEventListener('click', e => {
+    if (e.target === document.getElementById('custPopupBg')) closeCustPopup();
+  });
 });
 
 connect();
