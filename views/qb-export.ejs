@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QB Export</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#1e2d40;background:#eef1f5;min-height:100vh}
+.nav{background:#1a2e4a;height:50px;display:flex;align-items:center;padding:0 16px;gap:10px}
+.nav a{color:rgba(255,255,255,.6);font-size:12px;text-decoration:none}.nav a:hover{color:#fff}
+.nav h1{color:#fff;font-size:14px;font-weight:600}
+.nav-spacer{flex:1}
+.btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.btn-primary{background:#2e6fad;color:#fff;border:none}
+.btn-sec{background:rgba(255,255,255,.15);color:#fff;border:0.5px solid rgba(255,255,255,.3)}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.page-title{font-size:17px;font-weight:600;color:#1a2e4a}
+.page-sub{font-size:11px;color:#8fa0b8;margin-top:1px}
+.filter-row{background:#fff;border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;border:0.5px solid #dde3ec}
+.filter-row label{font-size:10px;font-weight:600;color:#4a5e78;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:3px}
+.filter-row select{border:0.5px solid #dde3ec;border-radius:5px;padding:5px 8px;font-size:12px;background:#fff}
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+.stat{background:#fff;border-radius:8px;padding:10px 12px;text-align:center;border:0.5px solid #dde3ec}
+.stat .n{font-size:20px;font-weight:600;color:#1a2e4a}
+.stat .n.warn{color:#b45309}
+.stat .n.danger{color:#991b1b}
+.stat .l{font-size:10px;color:#8fa0b8;text-transform:uppercase;letter-spacing:.2px;margin-top:2px}
+.card{background:#fff;border:0.5px solid #dde3ec;border-radius:10px;overflow:hidden}
+.card-hdr{background:#1a2e4a;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-hdr h3{color:#fff;font-size:13px;font-weight:600;margin:0}
+.card-hdr .meta{color:rgba(255,255,255,.45);font-size:11px;margin-top:1px}
+.legend{display:flex;gap:14px;padding:8px 14px;background:#f8f9fb;border-bottom:0.5px solid #dde3ec;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#4a5e78}
+.leg-sw{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#1a2e4a;color:rgba(255,255,255,.85);padding:7px 10px;text-align:left;font-size:10px;font-weight:500;white-space:nowrap}
+thead th.num{text-align:right}
+tbody td{padding:6px 10px;border-bottom:0.5px solid #f0f4f8;vertical-align:middle}
+tbody tr:last-child td{border:none}
+tbody tr:hover td{background:#f8fafb}
+tbody tr.fl-mm td{background:#fffbf0}
+tbody tr.fl-um td{background:#fff5f5}
+tbody tr.fl-nj td{background:#faf5ff}
+.fl-bar{width:4px;padding:0 !important}
+.badge{display:inline-flex;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600}
+.badge.ok{background:#d1fae5;color:#065f46}
+.badge.mm{background:#fef3c7;color:#92400e}
+.badge.um{background:#fee2e2;color:#991b1b}
+.badge.nj{background:#ede9fe;color:#5b21b6}
+.badge.cl{background:#fee2e2;color:#991b1b}
+.litag{display:inline-block;padding:1px 5px;border-radius:3px;background:#e0f2ea;color:#065f46;font-size:10px;font-weight:600;font-family:monospace}
+.litag.bl{background:#dbeafe;color:#1d4ed8}
+.td-num{text-align:right;font-variant-numeric:tabular-nums}
+.summary-bar{display:flex;gap:0;border-top:0.5px solid #dde3ec}
+.qs{flex:1;padding:10px 12px;text-align:center;border-right:0.5px solid #dde3ec}
+.qs:last-child{border:none}
+.qs .n{font-size:18px;font-weight:600;color:#1a2e4a}
+.qs .n.warn{color:#b45309}
+.qs .n.danger{color:#991b1b}
+.qs .l{font-size:10px;color:#8fa0b8;text-transform:uppercase;letter-spacing:.2px;margin-top:1px}
+</style></head><body>
+<nav class="nav">
+  <a href="/admin?pw=<%= pw %>">← Admin</a>
+  <h1>QuickBooks Export</h1>
+  <div class="nav-spacer"></div>
+  <% if(selectedWeek){ %>
+  <a href="/admin/export/csv?pw=<%= pw %>&week=<%= selectedWeek %>" class="btn btn-sec">Download CSV</a>
+  <% } %>
+</nav>
+<div class="wrap">
+  <form method="GET" action="/admin/export">
+    <input type="hidden" name="pw" value="<%= pw %>">
+    <div class="filter-row">
+      <div><label>Week</label>
+        <select name="week" onchange="this.form.submit()">
+          <option value="">— select week —</option>
+          <% weeks.forEach(function(w){ const ws=w.week_start.toISOString().split('T')[0]; %>
+            <option value="<%= ws %>" <%=selectedWeek===ws?'selected':''%>>
+              Week of <%= new Date(ws+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <% if(selectedWeek){ %>
+      <div style="display:flex;gap:6px;align-items:flex-end">
+        <a href="/admin/export/csv?pw=<%= pw %>&week=<%= selectedWeek %>" class="btn btn-primary" style="font-size:12px;padding:7px 14px">Download CSV</a>
+      </div>
+      <% } %>
+    </div>
+  </form>
+
+  <% if(rows.length){ %>
+  <%
+  const totalHrs = rows.reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+  const flagged  = rows.filter(r=>r.flag_type!=='ok').length;
+  const emps     = [...new Set(rows.map(r=>r.employee))].length;
+  const codes    = [...new Set(rows.filter(r=>r.li_code).map(r=>r.li_code))].length;
+  %>
+  <div class="stat-grid">
+    <div class="stat"><div class="n"><%= totalHrs.toFixed(1) %></div><div class="l">Total hours</div></div>
+    <div class="stat"><div class="n"><%= emps %></div><div class="l">Employees</div></div>
+    <div class="stat"><div class="n <%= flagged>0?'warn':'' %>"><%= flagged %></div><div class="l">Flagged rows</div></div>
+    <div class="stat"><div class="n"><%= codes %></div><div class="l">L&I codes used</div></div>
+    <div class="stat"><div class="n"><%= rows.length %></div><div class="l">Total rows</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div><h3>Weekly timecard export</h3><div class="meta">Week of <%= new Date(selectedWeek+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %> · <%= rows.length %> rows</div></div>
+    </div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-sw" style="background:#6ee7b7;border:0.5px solid #34d399"></div>Clean</div>
+      <div class="leg-item"><div class="leg-sw" style="background:#fde68a;border:0.5px solid #d97706"></div>Assignment mismatch / job closed</div>
+      <div class="leg-item"><div class="leg-sw" style="background:#fecaca;border:0.5px solid #ef4444"></div>Job not in board</div>
+      <div class="leg-item"><div class="leg-sw" style="background:#ddd6fe;border:0.5px solid #7c3aed"></div>New job</div>
+    </div>
+    <div class="tbl-wrap">
+    <table id="qbTable">
+      <thead><tr>
+        <th class="fl-bar"></th>
+        <th>Employee</th><th>Week ending</th><th>Location / Job</th>
+        <th>L&I code</th><th>Pay type</th>
+        <th class="num">Sun</th><th class="num">Mon</th><th class="num">Tue</th><th class="num">Wed</th><th class="num">Thu</th><th class="num">Fri</th><th class="num">Sat</th>
+        <th class="num">Total hrs</th><th>After hrs</th><th>Flag</th>
+      </tr></thead>
+      <tbody>
+      <% rows.forEach(function(r){ %>
+        <% const cls = r.flag_type==='unmatched'?'fl-um':r.flag_type==='newjob'?'fl-nj':(r.flag_type==='mismatch'||r.flag_type==='closed'||r.flag_type==='unassigned')?'fl-mm':''; %>
+        <% const barColor = r.flag_type==='unmatched'?'#fca5a5':r.flag_type==='newjob'?'#a78bfa':(r.flag_type!=='ok')?'#fbbf24':'#6ee7b7'; %>
+        <tr class="<%= cls %>">
+          <td class="fl-bar" style="background:<%= barColor %>"></td>
+          <td><strong><%= r.employee %></strong></td>
+          <td style="font-size:11px"><%= r.week_ending %></td>
+          <td><%= r.location %></td>
+          <td><% if(r.li_code){ %><span class="litag <%= r.li_code.startsWith('4')||r.li_code==='6303'?'bl':'' %>"><%= r.li_code %></span><% }else{ %>—<% } %></td>
+          <td style="font-size:11px"><%= r.pay_type %></td>
+          <td class="td-num"><%= r.sun||'—' %></td><td class="td-num"><%= r.mon||'—' %></td>
+          <td class="td-num"><%= r.tue||'—' %></td><td class="td-num"><%= r.wed||'—' %></td>
+          <td class="td-num"><%= r.thu||'—' %></td><td class="td-num"><%= r.fri||'—' %></td>
+          <td class="td-num"><%= r.sat||'—' %></td>
+          <td class="td-num"><strong><%= r.total_hrs %></strong></td>
+          <td style="font-size:11px;color:#6d28d9"><%= r.after_hrs||'—' %></td>
+          <td>
+            <% if(r.flag_type==='ok'){ %><span class="badge ok">Clean</span>
+            <% }else if(r.flag_type==='unmatched'){ %><span class="badge um">Not in board</span>
+            <% }else if(r.flag_type==='newjob'){ %><span class="badge nj">New job</span>
+            <% }else if(r.flag_type==='closed'){ %><span class="badge cl">Job closed</span>
+            <% }else{ %><span class="badge mm">Not assigned</span><% } %>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    </div>
+    <div class="summary-bar">
+      <div class="qs"><div class="n"><%= totalHrs.toFixed(1) %></div><div class="l">Total hours</div></div>
+      <div class="qs"><div class="n"><%= emps %></div><div class="l">Employees</div></div>
+      <div class="qs"><div class="n <%= flagged>0?'warn':'' %>"><%= flagged %></div><div class="l">Flagged rows</div></div>
+      <div class="qs"><div class="n"><%= codes %></div><div class="l">L&I codes</div></div>
+    </div>
+  </div>
+  <% } else { %>
+  <div style="background:#fff;border-radius:8px;padding:40px;text-align:center;color:#8fa0b8;font-size:13px;border:0.5px solid #dde3ec">Select a week above to generate the QuickBooks export.</div>
+  <% } %>
+</div>
+</body></html>

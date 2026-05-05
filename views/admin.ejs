@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — HRI Time Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#1e2d40;background:#eef1f5;min-height:100vh}
+a{color:inherit;text-decoration:none}
+.app-nav{background:#1a2e4a;height:50px;display:flex;align-items:center;padding:0 16px;gap:2px;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:7px;color:#fff;font-size:13px;font-weight:600;padding-right:16px;border-right:1px solid rgba(255,255,255,.15);margin-right:4px}
+.nav-link{padding:0 12px;height:50px;display:flex;align-items:center;font-size:11px;font-weight:500;color:rgba(255,255,255,.55);border-bottom:2px solid transparent}
+.nav-link:hover{color:#fff}
+.nav-link.active{color:#fff;border-bottom-color:#4a9eff}
+.nav-spacer{flex:1}
+.wrap{max-width:1060px;margin:0 auto;padding:14px}
+.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.page-title{font-size:17px;font-weight:600;color:#1a2e4a}
+.page-sub{font-size:11px;color:#8fa0b8;margin-top:1px}
+.btn-primary{background:#1a2e4a;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.btn-primary:hover{background:#243d5e}
+.filter-row{background:#fff;border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;border:0.5px solid #dde3ec}
+.filter-row label{font-size:10px;font-weight:600;color:#4a5e78;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:3px}
+.filter-row select,.filter-row input{border:0.5px solid #dde3ec;border-radius:5px;padding:5px 8px;font-size:12px;background:#fff;color:#1e2d40}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stat-card{background:var(--bg,#f8f9fb);border-radius:8px;padding:10px 14px;text-align:center}
+.stat-card .n{font-size:22px;font-weight:600;color:#1a2e4a}
+.stat-card.ok .n{color:#065f46}
+.stat-card.warn .n{color:#b45309}
+.stat-card.danger .n{color:#991b1b}
+.stat-card .l{font-size:10px;color:#8fa0b8;text-transform:uppercase;letter-spacing:.2px;margin-top:2px}
+.atabs{display:flex;background:#fff;border-radius:8px 8px 0 0;overflow:hidden;border:0.5px solid #dde3ec;border-bottom:none}
+.atab{padding:9px 14px;font-size:12px;font-weight:500;color:#8fa0b8;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.atab.active{color:#2e6fad;border-bottom-color:#2e6fad}
+.apane{display:none;background:#fff;border:0.5px solid #dde3ec;border-top:0.5px solid #e8edf3;border-radius:0 0 8px 8px;overflow:hidden}
+.apane.active{display:block}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#f8f9fb;padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:#4a5e78;text-transform:uppercase;letter-spacing:.3px;border-bottom:0.5px solid #dde3ec;white-space:nowrap}
+tbody td{padding:7px 10px;border-bottom:0.5px solid #f0f4f8;vertical-align:middle}
+tbody tr:last-child td{border:none}
+tbody tr:hover td{background:#f8fafb}
+tbody tr.flagged td{background:#fffbf0}
+tbody tr.danger td{background:#fff5f5}
+tbody tr.newj td{background:#faf5ff}
+.badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge.sub{background:#d1fae5;color:#065f46}
+.badge.draft{background:#fef3c7;color:#92400e}
+.badge.miss{background:#fee2e2;color:#991b1b}
+.badge.mm{background:#fef3c7;color:#92400e}
+.badge.nj{background:#ede9fe;color:#5b21b6}
+.badge.cl{background:#fee2e2;color:#991b1b}
+.badge.ok{background:#d1fae5;color:#065f46}
+.litag{display:inline-block;padding:1px 5px;border-radius:3px;background:#e0f2ea;color:#065f46;font-size:10px;font-weight:600;font-family:monospace}
+.litag.bl{background:#dbeafe;color:#1d4ed8}
+.vlink{color:#2e6fad;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none}
+.empty{text-align:center;padding:28px;color:#8fa0b8;font-size:13px}
+</style>
+</head>
+<body>
+<nav class="app-nav">
+  <a href="/" class="nav-logo">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Fire Water Storm
+  </a>
+  <a href="/" class="nav-link">Job Board</a>
+  <a href="/timecard" class="nav-link">Time Card</a>
+  <a href="/admin?pw=<%= pw %>" class="nav-link active">Admin</a>
+  <div class="nav-spacer"></div>
+  <a href="/admin/export?pw=<%= pw %>&week=<%= selectedWeek||'' %>" class="btn-primary" style="font-size:11px;padding:6px 12px">QB Export →</a>
+</nav>
+
+<div class="wrap">
+  <div class="page-hdr">
+    <div><div class="page-title">Admin Dashboard</div><div class="page-sub">Fire Water Storm — Time Card Management</div></div>
+  </div>
+
+  <form method="GET" action="/admin">
+    <input type="hidden" name="pw" value="<%= pw %>">
+    <div class="filter-row">
+      <div><label>Week</label>
+        <select name="week" onchange="this.form.submit()">
+          <option value="">— all weeks —</option>
+          <% weeks.forEach(function(w){ const ws=w.week_start.toISOString().split('T')[0]; %>
+            <option value="<%= ws %>" <%=selectedWeek===ws?'selected':''%>>
+              Week of <%= new Date(ws+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %> (<%= w.count %> cards)
+            </option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+  </form>
+
+  <% if (selectedWeek) { %>
+  <div class="stat-grid">
+    <div class="stat-card ok"><div class="n"><%= submitted.length %></div><div class="l">Submitted</div></div>
+    <div class="stat-card warn"><div class="n"><%= drafts.length %></div><div class="l">Drafts</div></div>
+    <div class="stat-card danger"><div class="n"><%= notStarted.length %></div><div class="l">Not started</div></div>
+    <div class="stat-card warn"><div class="n"><%= submitted.filter(t=>t.has_mismatch).length %></div><div class="l">Flagged</div></div>
+  </div>
+  <% } %>
+
+  <div class="atabs">
+    <button class="atab active" id="atab-sub" onclick="aTab('sub')">Submitted <span style="font-size:10px;background:#d1fae5;color:#065f46;padding:1px 5px;border-radius:8px;margin-left:3px"><%= submitted.length %></span></button>
+    <button class="atab" id="atab-draft" onclick="aTab('draft')">Drafts <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:8px;margin-left:3px"><%= drafts.length %></span></button>
+    <button class="atab" id="atab-miss" onclick="aTab('miss')">Not Started <span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:8px;margin-left:3px"><%= notStarted.length %></span></button>
+    <button class="atab" id="atab-xref" onclick="aTab('xref')">Cross-Reference</button>
+    <button class="atab" id="atab-emp" onclick="window.location='/admin/employees?pw=<%= pw %>'">Employees</button>
+  </div>
+
+  <!-- Submitted -->
+  <div class="apane active" id="apane-sub">
+    <% if (!submitted.length) { %><div class="empty">No submitted timecards for this week.</div><% } else { %>
+    <table>
+      <thead><tr><th>Employee</th><th>Week</th><th>Total hrs</th><th>Reg hrs</th><th>Board-Up</th><th>Office</th><th>Leave</th><th>Submitted</th><th>Flags</th><th></th></tr></thead>
+      <tbody>
+      <% submitted.forEach(function(t){ %>
+        <tr class="<%= t.has_mismatch?'flagged':'' %>">
+          <td><strong><%= t.employee_name %></strong></td>
+          <td style="font-size:11px"><%= new Date(t.week_start+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) %> – <%= new Date(t.week_end+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
+          <td><strong><%= (parseFloat(t.total_combined)||0).toFixed(1) %></strong></td>
+          <td><%= (parseFloat(t.total_reg_hrs)||0).toFixed(1) %></td>
+          <td><%= (parseFloat(t.total_bu_hrs)||0)>0?(parseFloat(t.total_bu_hrs)).toFixed(1):'—' %></td>
+          <td><%= (parseFloat(t.total_office_hrs)||0)>0?(parseFloat(t.total_office_hrs)).toFixed(1):'—' %></td>
+          <td><%= (parseFloat(t.total_leave_hrs)||0)>0?(parseFloat(t.total_leave_hrs)).toFixed(1):'—' %></td>
+          <td style="font-size:11px;color:#8fa0b8"><%= t.submitted_at?new Date(t.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—' %></td>
+          <td><%= t.has_mismatch?'<span class="badge mm">Flagged</span>':'' %></td>
+          <td><a href="/admin/timecard/<%= t.id %>?pw=<%= pw %>" class="vlink">View →</a></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+
+  <!-- Drafts -->
+  <div class="apane" id="apane-draft">
+    <% if (!drafts.length) { %><div class="empty">No drafts this week — great!</div><% } else { %>
+    <table>
+      <thead><tr><th>Employee</th><th>Last saved</th><th>Hours so far</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      <% drafts.forEach(function(t){ %>
+        <tr class="flagged">
+          <td><strong><%= t.employee_name %></strong></td>
+          <td style="font-size:11px;color:#8fa0b8"><%= new Date(t.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) %></td>
+          <td><%= (parseFloat(t.total_combined)||0).toFixed(1) %> hrs</td>
+          <td><span class="badge draft">In progress</span></td>
+          <td><a href="/admin/timecard/<%= t.id %>?pw=<%= pw %>" class="vlink">View →</a></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+
+  <!-- Not started -->
+  <div class="apane" id="apane-miss">
+    <% if (!notStarted.length) { %><div class="empty">All crew have started their time card this week!</div><% } else { %>
+    <table>
+      <thead><tr><th>Employee</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead>
+      <tbody>
+      <% notStarted.forEach(function(p){ %>
+        <tr class="danger">
+          <td><strong><%= p.nickname %></strong> <span style="font-size:11px;color:#8fa0b8">(<%= p.name %>)</span></td>
+          <td style="color:#2e6fad;font-size:11px"><%= p.email||'—' %></td>
+          <td style="font-size:11px;color:#8fa0b8"><%= p.phone||'—' %></td>
+          <td><span class="badge miss">No record this week</span></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+
+  <!-- Cross-reference -->
+  <div class="apane" id="apane-xref">
+    <% if (!crossref.length) { %><div class="empty">No cross-reference data for this week.</div><% } else { %>
+    <table>
+      <thead><tr><th>Employee</th><th>Job / Location</th><th>Hours</th><th>Check</th><th>Description</th></tr></thead>
+      <tbody>
+      <% crossref.forEach(function(r){ %>
+        <tr class="<%= r.check_status==='ok'?'':r.check_status==='unmatched'?'danger':'flagged' %>">
+          <td><strong><%= r.employee_name %></strong></td>
+          <td><%= r.job_name %></td>
+          <td><%= (parseFloat(r.total_hrs)||0).toFixed(1) %></td>
+          <td>
+            <% if(r.check_status==='ok'){ %><span class="badge ok">Clean</span>
+            <% } else if(r.check_status==='unmatched'){ %><span class="badge miss">Not in board</span>
+            <% } else if(r.check_status==='closed'){ %><span class="badge cl">Job closed</span>
+            <% } else { %><span class="badge mm">Not assigned</span><% } %>
+          </td>
+          <td style="font-size:11px;color:#4a5e78"><%= r.description||'' %></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+
+</div>
+<script>
+function aTab(t){
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.apane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('atab-'+t).classList.add('active');
+  document.getElementById('apane-'+t).classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Time Card Detail</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#1e2d40;background:#eef1f5}
+.nav{background:#1a2e4a;height:50px;display:flex;align-items:center;padding:0 16px;gap:14px}
+.nav a{color:rgba(255,255,255,.6);font-size:12px;text-decoration:none}.nav a:hover{color:#fff}
+.nav h1{color:#fff;font-size:14px;font-weight:600;margin-left:4px}
+.nav-spacer{flex:1}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.ib{background:#fff;border-radius:8px;padding:10px 12px;border:0.5px solid #dde3ec}
+.ib .l{font-size:10px;color:#8fa0b8;text-transform:uppercase;letter-spacing:.2px;margin-bottom:3px}
+.ib .v{font-size:15px;font-weight:600;color:#1a2e4a}
+.ib .v.ot{color:#991b1b}
+.card{background:#fff;border:0.5px solid #dde3ec;border-radius:8px;overflow:hidden;margin-bottom:12px}
+.card-hdr{background:#1a2e4a;color:#fff;padding:8px 14px;font-size:12px;font-weight:600}
+.card-hdr.orange{background:#C55A11}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#f8f9fb;padding:6px 10px;text-align:left;font-size:10px;font-weight:600;color:#4a5e78;border-bottom:0.5px solid #dde3ec;white-space:nowrap}
+thead th.num{text-align:right}
+tbody td{padding:6px 10px;border-bottom:0.5px solid #f0f4f8;vertical-align:middle}
+tbody tr:last-child td{border:none}
+.td-num{text-align:right;font-variant-numeric:tabular-nums}
+.ot-cell{background:#fef2f2;color:#991b1b;font-weight:600}
+.totrow td{background:#e0f2ea !important;font-weight:600;color:#065f46}
+.badge{display:inline-flex;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600}
+.badge.ok{background:#d1fae5;color:#065f46}
+.badge.mm{background:#fef3c7;color:#92400e}
+.badge.nj{background:#ede9fe;color:#5b21b6}
+.flag-row{background:#fffbf0;border-left:3px solid #d97706;padding:10px 14px;margin:10px 0;font-size:12px;color:#92400e;border-radius:0 6px 6px 0}
+.print-btn{background:#1a2e4a;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer}
+</style></head><body>
+<nav class="nav">
+  <a href="/admin?pw=<%= pw %>">← Back</a>
+  <h1>TC-<%= tc.id %> — <%= tc.employee_name %></h1>
+  <div class="nav-spacer"></div>
+  <button class="print-btn" onclick="window.print()">Print / PDF</button>
+</nav>
+<div class="wrap">
+<%
+const DAYS=['sun','mon','tue','wed','thu','fri','sat'];
+const DAY_LBL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const fh=n=>(parseFloat(n)||0)>0?(parseFloat(n)).toFixed(1):'—';
+const total=parseFloat(tc.total_combined)||0;
+%>
+<div class="info-grid">
+  <div class="ib"><div class="l">Employee</div><div class="v" style="font-size:13px"><%=tc.employee_name%></div></div>
+  <div class="ib"><div class="l">Week</div><div class="v" style="font-size:12px"><%=new Date(tc.week_start+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})%> – <%=new Date(tc.week_end+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})%></div></div>
+  <div class="ib"><div class="l">Total hrs</div><div class="v <%=total>40?'ot':''%>"><%=total.toFixed(1)%><%=total>40?' ⚠':''%></div></div>
+  <div class="ib"><div class="l">Regular</div><div class="v"><%=fh(tc.total_reg_hrs)%></div></div>
+  <div class="ib"><div class="l">Board-Up</div><div class="v"><%=fh(tc.total_bu_hrs)%></div></div>
+  <div class="ib"><div class="l">Office</div><div class="v"><%=fh(tc.total_office_hrs)%></div></div>
+  <div class="ib"><div class="l">Leave</div><div class="v"><%=fh(tc.total_leave_hrs)%></div></div>
+  <div class="ib"><div class="l">Status</div><div class="v" style="font-size:12px"><%=tc.status%></div></div>
+</div>
+
+<% if((tc.flags||[]).length){ %>
+<div class="flag-row"><strong>⚠ <%=tc.flags.length%> mismatch flag<%=tc.flags.length>1?'s':''%>:</strong>
+<%tc.flags.forEach(function(f){%> &nbsp;•&nbsp; <%=f.job_name%>: <%=f.description%><%})%></div>
+<% } %>
+
+<% const leaveRows=(tc.leave||[]).filter(l=>(parseFloat(l.hours)||0)>0); %>
+<% if(leaveRows.length){ %>
+<div class="card"><div class="card-hdr">Leave hours</div>
+<table><thead><tr><th>Day</th><th>Leave type</th><th class="num">Hours</th></tr></thead><tbody>
+<%leaveRows.forEach(function(l){%><tr><td><%=l.day_name%></td><td><%=l.leave_type||'—'%></td><td class="td-num"><%=(parseFloat(l.hours)||0).toFixed(1)%></td></tr><%})%>
+</tbody></table></div>
+<% } %>
+
+<% const regRows=(tc.rows||[]).filter(r=>r.section==='regular'&&(parseFloat(r.total_hrs)||0)>0); %>
+<% if(regRows.length){ %>
+<div class="card"><div class="card-hdr">Job & location hours</div>
+<table><thead><tr><th>Location / Job</th><%DAY_LBL.forEach(d=>{%><th class="num"><%=d%></th><%})%><th class="num">Total</th><th>L&I 1</th><th>L&I 2</th></tr></thead>
+<tbody><%regRows.forEach(function(r){const rtot=parseFloat(r.total_hrs)||0;%>
+<tr><td><%=r.job_name||'—'%><%=r.is_new_job?'<span style="margin-left:4px;background:#ede9fe;color:#5b21b6;font-size:10px;padding:1px 5px;border-radius:8px">New</span>':''%></td>
+<%DAYS.forEach(function(d){const v=parseFloat(r[d])||0;%><td class="td-num <%=v>8?'ot-cell':''%>"><%=v>0?v.toFixed(1):'—'%></td><%})%>
+<td class="td-num <%=rtot>8?'ot-cell':''%>"><strong><%=rtot.toFixed(1)%></strong></td>
+<td style="font-size:11px"><%=r.li_code_1||'—'%><%=(parseFloat(r.li_hrs_1)||0)>0?' ('+parseFloat(r.li_hrs_1).toFixed(1)+'h)':''%></td>
+<td style="font-size:11px"><%=r.li_code_2?(r.li_code_2+((parseFloat(r.li_hrs_2)||0)>0?' ('+parseFloat(r.li_hrs_2).toFixed(1)+'h)':'')):'—'%></td>
+</tr><%})%>
+</tbody></table></div>
+<% } %>
+
+<% const buRows=(tc.rows||[]).filter(r=>r.section==='boardup'&&(parseFloat(r.total_hrs)||0)>0); %>
+<% if(buRows.length){ %>
+<div class="card"><div class="card-hdr orange">Board-Up hours</div>
+<table><thead><tr><th>Job / Address</th><%DAY_LBL.forEach(d=>{%><th class="num"><%=d%></th><%})%><th class="num">Total</th><th>After hrs</th></tr></thead>
+<tbody><%buRows.forEach(function(r){
+let ahDays=[];try{const ah=typeof r.after_hours==='string'?JSON.parse(r.after_hours):(r.after_hours||{});ahDays=Object.keys(ah).filter(d=>ah[d]).map(d=>d.charAt(0).toUpperCase()+d.slice(1));}catch(e){}
+%><tr><td><%=r.job_name||'—'%></td>
+<%DAYS.forEach(function(d){const v=parseFloat(r[d])||0;%><td class="td-num"><%=v>0?v.toFixed(1):'—'%></td><%})%>
+<td class="td-num"><strong><%=(parseFloat(r.total_hrs)||0).toFixed(1)%></strong></td>
+<td style="font-size:11px;color:#6d28d9"><%=ahDays.length?ahDays.join(', '):'—'%></td>
+</tr><%})%>
+</tbody></table></div>
+<% } %>
+
+<% if((tc.oncall_days||[]).length){ %>
+<div style="background:#faf5ff;border:0.5px solid #c4b5fd;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#6d28d9"><strong>On-call days:</strong> <%=tc.oncall_days.join(', ')%></div>
+<% } %>
+<% if(tc.notes){ %><div style="background:#fff9e6;border-left:3px solid #f0c040;padding:10px 14px;border-radius:0 6px 6px 0;font-size:12px;color:#1e2d40;margin-bottom:12px"><strong>Notes:</strong> <%=tc.notes%></div><% } %>
+
+<div style="background:#f8f9fb;border-radius:8px;padding:10px 14px;font-size:12px;color:#8fa0b8;border:0.5px solid #dde3ec">
+Employee Signature: _____________________________________________ &nbsp;&nbsp; Date: _______________
+</div>
+</div></body></html>

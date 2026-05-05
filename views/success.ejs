@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Card Submitted</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',Arial,sans-serif;background:#eef1f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:12px;padding:36px 32px;max-width:460px;width:100%;text-align:center;border:0.5px solid #dde3ec}
+.check{width:60px;height:60px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.check svg{color:#065f46}
+h1{font-size:20px;font-weight:600;color:#1a2e4a;margin-bottom:7px}
+p{color:#4a5e78;font-size:13px;line-height:1.6;margin-bottom:5px}
+.detail{background:#f8f9fb;border-radius:8px;padding:12px 16px;margin:16px 0;text-align:left}
+.detail-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #eef1f5;font-size:12px}
+.detail-row:last-child{border:none}
+.detail-label{color:#8fa0b8}
+.detail-val{font-weight:600;color:#1a2e4a}
+.btn{display:inline-block;margin:6px 4px 0;padding:10px 22px;border-radius:7px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;border:none}
+.btn-primary{background:#1a2e4a;color:#fff}
+.btn-secondary{background:#fff;color:#4a5e78;border:0.5px solid #dde3ec}
+.tc-id{font-size:11px;color:#8fa0b8;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="check">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <h1>Time Card Submitted!</h1>
+  <p>Your time card has been saved and your supervisor has been notified.</p>
+  <div class="detail">
+    <div class="detail-row"><span class="detail-label">Employee</span><span class="detail-val"><%= name %></span></div>
+    <div class="detail-row"><span class="detail-label">Week of</span><span class="detail-val"><%= new Date(week+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}) %></span></div>
+    <div class="detail-row"><span class="detail-label">Total hours</span><span class="detail-val"><%= hrs %> hrs</span></div>
+    <div class="detail-row"><span class="detail-label">Confirmation</span><span class="detail-val">TC-<%= id %></span></div>
+  </div>
+  <a href="/timecard" class="btn btn-primary">Submit Another Time Card</a>
+  <a href="/my-assignments" class="btn btn-secondary">Check My Assignments</a>
+  <div class="tc-id">Keep TC-<%= id %> for your records</div>
+</div>
+</body>
+</html>

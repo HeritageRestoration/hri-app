@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',Arial,sans-serif;background:#eef1f5;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;border-radius:12px;padding:36px 32px;max-width:360px;width:100%;border:0.5px solid #dde3ec}
+.logo{display:flex;align-items:center;gap:8px;color:#1a2e4a;font-size:15px;font-weight:600;margin-bottom:20px}
+h2{font-size:18px;font-weight:600;color:#1a2e4a;margin-bottom:5px}p{font-size:12px;color:#8fa0b8;margin-bottom:18px}
+.err{background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:14px}
+label{font-size:11px;font-weight:600;color:#4a5e78;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px}
+input{width:100%;border:0.5px solid #dde3ec;border-radius:6px;padding:9px 12px;font-size:14px;margin-bottom:14px;color:#1e2d40}
+input:focus{outline:none;border-color:#2e6fad}
+button{width:100%;background:#1a2e4a;color:#fff;border:none;border-radius:7px;padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+</style></head><body>
+<div class="card">
+  <div class="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Fire Water Storm</div>
+  <h2>Admin Dashboard</h2><p>Enter your admin password to continue.</p>
+  <% if(error){%><div class="err"><%=error%></div><%}%>
+  <form method="POST" action="/admin/login">
+    <label>Password</label>
+    <input type="password" name="pw" placeholder="Admin password" required>
+    <button type="submit">Sign In</button>
+  </form>
+</div></body></html>

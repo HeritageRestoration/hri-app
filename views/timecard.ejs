@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRI Time Card</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/timecard.css">
+</head>
+<body>
+
+<nav class="app-nav">
+  <a href="/" class="nav-logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Fire Water Storm
+  </a>
+  <a href="/" class="nav-link">Job Board</a>
+  <a href="/timecard" class="nav-link active">Time Card</a>
+  <a href="/my-assignments" class="nav-link">My Assignments</a>
+  <div class="nav-spacer"></div>
+  <div class="saved-indicator" id="savedIndicator"></div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-hdr">
+    <div>
+      <div class="page-title">Employee Time Card</div>
+      <div class="page-sub">All fields auto-save as you type</div>
+    </div>
+  </div>
+
+  <% if (error) { %><div class="error-bar"><%= error %></div><% } %>
+
+  <div class="card">
+    <!-- Meta -->
+    <div class="meta-bar">
+      <div class="mf">
+        <label>Your name *</label>
+        <select id="empName" onchange="onNameChange()">
+          <option value="">— select your name —</option>
+          <% crew.forEach(function(p){ %>
+            <option value="<%= p.nickname %>" data-email="<%= p.email||'' %>"><%= p.nickname %> (<%= p.name %>)</option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="mf">
+        <label>Week start (Sun) *</label>
+        <input type="date" id="wkStart" onchange="onWeekChange()">
+      </div>
+      <div class="mf">
+        <label>Week end (Sat)</label>
+        <input type="date" id="wkEnd" readonly>
+      </div>
+      <div class="mf">
+        <label>Your email (optional)</label>
+        <input type="email" id="empEmail" placeholder="for reminder emails">
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tab-reg" onclick="switchTab('reg')">Regular Hours <span class="tbadge" id="reg-badge">0 rows</span></button>
+      <button class="tab bu" id="tab-bu" onclick="switchTab('bu')">Board-Up <span class="tbadge" id="bu-badge">0 jobs</span></button>
+    </div>
+
+    <!-- REGULAR PANE -->
+    <div class="pane active" id="pane-reg">
+
+      <!-- Leave section -->
+      <div class="leave-sec">
+        <div class="leave-title">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Leave hours — vacation, sick &amp; holiday (no location required)
+        </div>
+        <div class="leave-grid" id="leaveGrid"></div>
+        <div class="leave-chips" id="leaveChips">
+          <span class="lchip-none">No leave hours this week</span>
+        </div>
+      </div>
+
+      <!-- Job rows -->
+      <div class="sec-lbl">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8l-2 4h12l-2-4z"/></svg>
+        Location &amp; job hours — office, job sites, shop, or new job
+      </div>
+      <div id="regRows"></div>
+      <button class="add-row-btn" onclick="addRow('reg')">+ Add another row</button>
+
+      <div class="notes-wrap">
+        <label>Notes for supervisor (optional)</label>
+        <textarea id="tcNotes" rows="2" placeholder="Anything your supervisor should know..." oninput="scheduleSave()"></textarea>
+      </div>
+    </div>
+
+    <!-- BOARDUP PANE -->
+    <div class="pane" id="pane-bu">
+      <div class="sec-lbl">Board-Up job hours — L&I code 0521 auto-assigned, check after hours per day</div>
+      <div id="buRows"></div>
+      <button class="add-row-btn bu" onclick="addRow('bu')">+ Add another Board-Up job</button>
+      <div class="oncall-row" id="oncallRow">
+        <span class="oc-title">On-call days — mark each day you were on call:</span>
+      </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="totals-bar" id="totalsBar"></div>
+    <div class="saved-bar" id="savedBar"><div class="sdot"></div><span id="savedMsg">Not saved yet</span></div>
+    <div class="val-bar" id="valBar"><div class="vdot err" id="vdot"></div><span id="valMsg">Select your name to continue</span></div>
+
+    <div class="submit-bar">
+      <button class="btn-submit" id="btnSubmit" disabled onclick="onSubmit()">Submit Time Card</button>
+      <button class="btn-clear" onclick="clearForm()">Clear form</button>
+      <span class="submit-note">Jobs are checked against the Job Board on submit</span>
+    </div>
+  </div>
+</div>
+
+<!-- Mismatch modal -->
+<div class="modal-backdrop" id="mmBackdrop" style="display:none">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Review before submitting</div>
+      <div class="modal-sub" id="mmSub"></div>
+    </div>
+    <div class="modal-intro" id="mmIntro"></div>
+    <div class="modal-body" id="mmBody"></div>
+    <div class="modal-footer">
+      <button class="btn-back" onclick="closeModal()">← Go back and fix</button>
+      <button class="btn-confirm" id="btnConfirm">Submit anyway — notify supervisor</button>
+      <span class="modal-note">Flagged rows will be highlighted in the admin dashboard and QB export.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const JOBS_FROM_BOARD = <%- JSON.stringify(jobs.map(j=>j.name)) %>;
+const NON_BILLABLE    = ['Shop (Non-Billable)', 'Lack of Work'];
+// TWEAK 2+3: All L&I codes in two groups, available on every row
+const FIELD_LI = [
+  {v:'0521', l:'0521 — Painting / Paint Prep'},
+  {v:'0513', l:'0513 — Interior Finish Carpentry'},
+  {v:'0516', l:'0516 — Building Repair & Remodel'},
+  {v:'6602', l:'6602 — Cleaning'},
+];
+const OFFICE_LI = [
+  {v:'4904', l:'4904 — Clerical'},
+  {v:'4900', l:'4900 — Project Manager'},
+  {v:'4911', l:'4911 — Estimator'},
+  {v:'6303', l:'6303 — Sales'},
+  {v:'9999', l:'9999 — Legal'},
+];
+const ALL_LI = [...FIELD_LI, ...OFFICE_LI]; // TWEAK 2: all codes on every row
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+// TWEAK 1: KOS added; TWEAK 2: Lack of Work moved here from job dropdown
+const LEAVE_TYPES = [
+  {v:'Vacation',     l:'Vacation',             paid:true},
+  {v:'Sick',         l:'Sick',                 paid:true},
+  {v:'Holiday',      l:'Holiday',              paid:true},
+  {v:'KOS',          l:'KOS (Kept on Salary)', paid:true},
+  {v:'Lack of Work', l:'Lack of Work',         paid:false},
+];
+// TWEAK 2: Lack of Work no longer in job dropdown NON_BILLABLE
+const NON_BILLABLE = ['Shop (Non-Billable)'];
+let rowId = 0, saveTimer = null, currentTcId = null, pendingFlags = [];
+
+// ── Leave grid ────────────────────────────────────────────────────────────────
+function buildLeaveGrid() {
+  const g = document.getElementById('leaveGrid');
+  g.innerHTML = '';
+  DAYS.forEach(d => {
+    const ltOpts = LEAVE_TYPES.map(t=>`<option value="${t.v}">${t.l}</option>`).join('');
+    const col = document.createElement('div');
+    col.className = 'leave-day';
+    col.innerHTML = `
+      <span class="dl">${d}</span>
+      <input type="number" id="lv-hrs-${d}" min="0" max="24" step="0.5" placeholder="0" oninput="onLeaveHrs('${d}')">
+      <select id="lv-type-${d}" onchange="onLeaveType('${d}')">
+        <option value="">— type —</option>${ltOpts}
+      </select>`;
+    g.appendChild(col);
+  });
+}
+
+function onLeaveHrs(d) {
+  const v = parseFloat(document.getElementById(`lv-hrs-${d}`)?.value)||0;
+  const sel = document.getElementById(`lv-type-${d}`);
+  if (sel && v === 0) { sel.value = ''; sel.className = ''; }
+  recalc(); scheduleSave();
+}
+function onLeaveType(d) {
+  const sel = document.getElementById(`lv-type-${d}`);
+  if (sel) sel.className = sel.value.toLowerCase() || '';
+  recalc(); scheduleSave();
+}
+
+// ── Job rows ──────────────────────────────────────────────────────────────────
+function jobDropdown(id) {
+  const opts = `
+    <optgroup label="Office">
+      <option value="__OFFICE__">Office (Clerical / Admin / PM / Sales / Legal)</option>
+    </optgroup>
+    <optgroup label="Non-billable">
+      <option value="Shop (Non-Billable)">Shop (Non-Billable)</option>
+    </optgroup>
+    <optgroup label="New job">
+      <option value="__NEW__">— New Job —</option>
+    </optgroup>
+    <optgroup label="HRI Job Sites">
+      ${JOBS_FROM_BOARD.map(j=>`<option value="${j}">${j}</option>`).join('')}
+    </optgroup>`;
+  return `<select id="job-${id}" onchange="onJobChange(${id})" style="flex:1;min-width:160px;border:0.5px solid #dde3ec;border-radius:5px;padding:5px 8px;font-size:12px;background:#fff;color:#1e2d40">
+    <option value="">— select location * required —</option>${opts}</select>`;
+}
+
+function liDropdown(id, slot, codes, cls) {
+  // TWEAK 2: always use all codes grouped
+  const fieldOpts = FIELD_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+  const officeOpts = OFFICE_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+  return `<select id="li-sel-${id}-${slot}" class="${cls||'eq'}" onchange="onLIChange(${id})" style="border:0.5px solid #dde3ec;border-radius:4px;padding:3px 6px;font-size:11px;background:#fff;width:100%">
+    <option value="">— select code —</option>
+    <optgroup label="Field work">${fieldOpts}</optgroup>
+    <optgroup label="Office / Admin">${officeOpts}</optgroup>
+  </select>`;
+}
+
+function dayInputs(id) {
+  return DAYS.map(d=>`
+    <div class="dc">
+      <span class="dl">${d}</span>
+      <input type="number" id="hrs-${id}-${d}" min="0" max="24" step="0.5"
+        oninput="recalc();checkSplit(${id});scheduleSave()"
+        style="width:40px;border:0.5px solid #dde3ec;border-radius:4px;padding:4px 2px;text-align:center;font-size:12px;background:#fff;color:#1e2d40">
+    </div>`).join('');
+}
+
+function buDayInputs(id) {
+  return DAYS.map(d=>`
+    <div class="bdc" id="bdc-${id}-${d}">
+      <span class="dl">${d}</span>
+      <input type="number" id="hrs-${id}-${d}" min="0" max="24" step="0.5"
+        oninput="recalc();scheduleSave()"
+        style="width:40px;border:0.5px solid #dde3ec;border-radius:4px;padding:4px 2px;text-align:center;font-size:12px;background:#fff;color:#1e2d40">
+      <label class="ahcb" onclick="onAH(${id},'${d}')">
+        <input type="checkbox" id="ah-${id}-${d}"><span>After Hrs</span>
+      </label>
+    </div>`).join('');
+}
+
+function addRow(type) {
+  const id = ++rowId;
+  const div = document.createElement('div');
+  div.id = `card-${id}`; div.className = 'jcard';
+  if (type === 'bu') div.setAttribute('data-bu','1');
+
+  if (type === 'reg') {
+    div.innerHTML = `
+      <div class="jtop" id="jtop-${id}">
+        ${jobDropdown(id)}
+        <button class="rm" onclick="removeRow(${id})">×</button>
+      </div>
+      <div class="new-job-area" id="nja-${id}" style="display:none">
+        <input type="text" id="new-job-name-${id}" placeholder="Customer name & address (e.g. Martinez, Carlos — 412 Pine St Lacey)" oninput="onNewJobName(${id})">
+        <div class="nja-hint">Flagged for supervisor to add to the Job Board</div>
+      </div>
+      <div class="dgrid" id="dgrid-${id}" style="opacity:.4;pointer-events:none">
+        ${dayInputs(id)}
+        <div class="rtcol"><span class="dl">Total</span><div class="rtpill z" id="rt-${id}">—</div></div>
+      </div>
+      <div class="lisec" id="li-${id}" style="display:none">
+        <div class="listatus req" id="li-status-${id}">L&I code required</div>
+        <div class="liblocks" id="li-wrap-${id}">
+          <div class="liblock empty" id="li-blk-${id}-1">
+            <label>Code 1 <span class="req-star">*required</span></label>
+            ${liDropdown(id, 1, FIELD_LI, 'eq')}
+            <div class="lihrs">
+              <input type="number" id="li-hrs-${id}-1" min="0" step="0.5" placeholder="hrs" disabled oninput="checkSplit(${id})" style="width:48px;border:0.5px solid #dde3ec;border-radius:4px;padding:3px 4px;font-size:12px;text-align:center;background:#f8f9fb;color:#c0cad8">
+              <span>hrs on this code</span>
+            </div>
+            <div class="split-warn" id="sw-${id}"></div>
+          </div>
+          <button class="add-code-btn" id="add-code-${id}" onclick="addCode2(${id})" style="display:none">+ 2nd L&I code</button>
+        </div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <div class="jtop bu" id="jtop-${id}">
+        <input type="text" id="job-${id}" placeholder="Board-Up job address / name — required"
+          style="flex:1;min-width:160px;border:0.5px solid #c4b5fd;border-radius:5px;padding:5px 8px;font-size:12px;background:#fff;color:#1e2d40"
+          oninput="onBUInput(${id})">
+        <button class="rm" onclick="removeRow(${id})">×</button>
+      </div>
+      <div class="dgrid" id="dgrid-${id}" style="opacity:.4;pointer-events:none">
+        ${buDayInputs(id)}
+        <div class="rtcol"><span class="dl">Total</span><div class="rtpill z" id="rt-${id}">—</div><div class="ah-sum" id="ahsum-${id}"></div></div>
+      </div>
+      <div class="bulibar" id="buli-${id}">L&I 0521 — Board-Up (auto-assigned)</div>`;
+  }
+  document.getElementById(type==='reg'?'regRows':'buRows').appendChild(div);
+  recalc();
+}
+
+function onJobChange(id) {
+  const sel = document.getElementById(`job-${id}`);
+  const val = sel?.value||'';
+  const isNew = val==='__NEW__', isOffice = val==='__OFFICE__';
+  const nb = NON_BILLABLE.includes(val);
+  const hasJob = !!val && val !== '__NEW__' || (isNew && (document.getElementById(`new-job-name-${id}`)?.value||'').trim());
+  const nja = document.getElementById(`nja-${id}`);
+  const grid = document.getElementById(`dgrid-${id}`);
+  const li = document.getElementById(`li-${id}`);
+
+  if (nja) nja.style.display = isNew ? 'block' : 'none';
+  if (grid) { grid.style.opacity = (val&&!isNew)||hasJob ? '1':'0.4'; grid.style.pointerEvents = (val&&!isNew)||hasJob ? '':'none'; }
+  if (li) {
+    li.style.display = (!val||nb||isNew&&!hasJob) ? 'none' : '';
+    if (isOffice) updateLIForOffice(id);
+    else if (!nb) resetLIForField(id);
+  }
+  const card = document.getElementById(`card-${id}`);
+  if (card) { card.className = 'jcard'+(isOffice?' office':isNew?' newjob':''); }
+  recalc(); scheduleSave();
+}
+
+function onNewJobName(id) {
+  const name = (document.getElementById(`new-job-name-${id}`)?.value||'').trim();
+  const grid = document.getElementById(`dgrid-${id}`);
+  const li = document.getElementById(`li-${id}`);
+  if (grid) { grid.style.opacity = name?'1':'0.4'; grid.style.pointerEvents = name?'':'none'; }
+  if (li) li.style.display = name?'':'none';
+  recalc(); scheduleSave();
+}
+
+function onBUInput(id) {
+  const val = (document.getElementById(`job-${id}`)?.value||'').trim();
+  const grid = document.getElementById(`dgrid-${id}`);
+  if (grid) { grid.style.opacity = val?'1':'0.4'; grid.style.pointerEvents = val?'':'none'; }
+  recalc(); scheduleSave();
+}
+
+function updateLIForOffice(id) {
+  const blk = document.getElementById(`li-blk-${id}-1`);
+  if (!blk) return;
+  const sel = blk.querySelector('select');
+  if (sel) {
+    sel.innerHTML = `<option value="">— select office code —</option>${OFFICE_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}`;
+    sel.className = 'eq';
+    sel.onchange = () => onLIChange(id);
+  }
+  const status = document.getElementById(`li-status-${id}`);
+  if (status) { status.textContent = 'Office L&I code required'; status.className = 'listatus ofk'; }
+  blk.className = 'liblock empty';
+}
+
+function resetLIForField(id) {
+  const blk = document.getElementById(`li-blk-${id}-1`);
+  if (!blk) return;
+  const sel = blk.querySelector('select');
+  if (sel && !OFFICE_LI.find(c=>c.v===sel.value)) {
+    sel.innerHTML = `<option value="">— select code —</option>${FIELD_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}`;
+    sel.className = 'eq'; sel.onchange = () => onLIChange(id);
+  }
+  const status = document.getElementById(`li-status-${id}`);
+  if (status) { status.textContent = 'L&I code required'; status.className = 'listatus req'; }
+}
+
+function onLIChange(id) {
+  const sel = document.getElementById(`li-sel-${id}-1`);
+  const blk = document.getElementById(`li-blk-${id}-1`);
+  const hIn = document.getElementById(`li-hrs-${id}-1`);
+  const addBtn = document.getElementById(`add-code-${id}`);
+  const status = document.getElementById(`li-status-${id}`);
+  if (!sel) return;
+  const ok = !!sel.value;
+  sel.className = ok?'sel':'eq';
+  if (blk) blk.className = 'liblock '+(ok?'filled':'empty');
+  if (hIn) { hIn.disabled=!ok; hIn.style.background=ok?'#fff':'#f8f9fb'; hIn.style.color=ok?'#1e2d40':'#c0cad8'; if(!ok)hIn.value=''; }
+  if (addBtn) addBtn.style.display = ok?'':'none';
+  if (status) { const jobSel=document.getElementById(`job-${id}`); const isOffice=jobSel?.value==='__OFFICE__';
+    status.textContent = ok?(isOffice?'Office L&I assigned':'L&I code assigned'):(isOffice?'Office L&I code required':'L&I code required');
+    status.className = ok?'listatus ok':(isOffice?'listatus ofk':'listatus req'); }
+  checkSplit(id); recalc(); scheduleSave();
+}
+
+function addCode2(id) {
+  const wrap = document.getElementById(`li-wrap-${id}`);
+  const addBtn = document.getElementById(`add-code-${id}`);
+  const jobSel = document.getElementById(`job-${id}`);
+  const isOffice = jobSel?.value==='__OFFICE__';
+  const codes = isOffice ? OFFICE_LI : FIELD_LI;
+  const blk = document.createElement('div');
+  blk.className = 'liblock'; blk.id = `li-blk-${id}-2`;
+  blk.innerHTML = `<label>Code 2 <span style="font-size:10px;color:#8fa0b8;font-weight:400;text-transform:none;letter-spacing:0">(optional)</span>
+    <button class="rm-sm" onclick="removeCode2(${id})">×</button></label>
+    <select id="li-sel-${id}-2" onchange="recalc()" style="border:0.5px solid #dde3ec;border-radius:4px;padding:3px 6px;font-size:11px;background:#fff;width:100%">
+      <option value="">— select code —</option>${codes.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}
+    </select>
+    <div class="lihrs">
+      <input type="number" id="li-hrs-${id}-2" min="0" step="0.5" placeholder="hrs" oninput="checkSplit(${id})" style="width:48px;border:0.5px solid #dde3ec;border-radius:4px;padding:3px 4px;font-size:12px;text-align:center;background:#fff">
+      <span>hrs on this code</span>
+    </div>`;
+  wrap.insertBefore(blk, addBtn);
+  addBtn.style.display = 'none';
+}
+
+function removeCode2(id) {
+  document.getElementById(`li-blk-${id}-2`)?.remove();
+  const ab = document.getElementById(`add-code-${id}`);
+  if (ab) ab.style.display='';
+  checkSplit(id); recalc();
+}
+
+function checkSplit(id) {
+  const rt = parseFloat(document.getElementById(`rt-${id}`)?.textContent)||0;
+  const h1 = parseFloat(document.getElementById(`li-hrs-${id}-1`)?.value)||0;
+  const h2El = document.getElementById(`li-hrs-${id}-2`);
+  const h2 = h2El ? parseFloat(h2El.value)||0 : 0;
+  const warn = document.getElementById(`sw-${id}`);
+  if (!warn) return;
+  const entered = h1+(h2El?h2:0);
+  if (rt>0 && entered>0 && Math.abs(entered-rt)>0.01) {
+    warn.textContent = `L&I hrs (${entered.toFixed(1)}) must equal row total (${rt.toFixed(1)})`;
+    warn.style.display = 'block';
+  } else { warn.style.display = 'none'; }
+}
+
+function onAH(id, day) {
+  const cb = document.getElementById(`ah-${id}-${day}`);
+  const col = document.getElementById(`bdc-${id}-${day}`);
+  const inp = document.getElementById(`hrs-${id}-${day}`);
+  if (cb?.checked) { col?.classList.add('ah'); if(inp){inp.style.borderColor='#a78bfa';inp.style.background='#faf5ff';} }
+  else { col?.classList.remove('ah'); if(inp){inp.style.borderColor='#dde3ec';inp.style.background='#fff';} }
+  recalc(); scheduleSave();
+}
+
+function removeRow(id) { document.getElementById(`card-${id}`)?.remove(); recalc(); scheduleSave(); }
+
+// ── Recalc ────────────────────────────────────────────────────────────────────
+function recalc() {
+  const dayTots = {Sun:0,Mon:0,Tue:0,Wed:0,Thu:0,Fri:0,Sat:0};
+  let regHrs=0, buHrs=0, leaveHrs=0, offHrs=0;
+  let missingJob=0, missingLI=0, splitErr=0, filled=0;
+
+  // Leave — Lack of Work excluded from totals (TWEAK 1+2)
+  let vacTot=0, sickTot=0, holTot=0, kosTot=0, lowTot=0, untypedLeave=0;
+  DAYS.forEach(d => {
+    const v = parseFloat(document.getElementById(`lv-hrs-${d}`)?.value)||0;
+    const t = document.getElementById(`lv-type-${d}`)?.value||'';
+    const isPaid = t !== 'Lack of Work';
+    if (v>0) {
+      // Only add to dayTots and leaveHrs if paid
+      if (isPaid) { dayTots[d]+=v; leaveHrs+=v; }
+      else { lowTot+=v; } // Lack of Work tracked separately, not in totals
+      if(t==='Vacation') vacTot+=v;
+      else if(t==='Sick') sickTot+=v;
+      else if(t==='Holiday') holTot+=v;
+      else if(t==='KOS') kosTot+=v;
+      else if(t==='Lack of Work') {} // already counted in lowTot
+      else untypedLeave++;
+    }
+    const sel = document.getElementById(`lv-type-${d}`);
+    if (sel) {
+      sel.style.borderColor = (v>0&&!t)?'#fca5a5':'';
+      // Color code the select for KOS and Lack of Work
+      if (t==='KOS') { sel.style.background='#e0f2fe'; sel.style.color='#0369a1'; sel.style.borderColor='#0369a1'; }
+      else if (t==='Lack of Work') { sel.style.background='#f1f5f9'; sel.style.color='#475569'; sel.style.borderColor='#94a3b8'; }
+      else if (!t && v===0) { sel.style.background=''; sel.style.color=''; sel.style.borderColor=''; }
+    }
+  });
+
+  // Leave chips
+  const chips = document.getElementById('leaveChips');
+  if (chips) {
+    const hasLeave = vacTot>0||sickTot>0||holTot>0||kosTot>0||lowTot>0;
+    chips.innerHTML = hasLeave ? [
+      vacTot>0?`<span class="lchip vac">Vacation: ${vacTot.toFixed(1)} hrs</span>`:'',
+      sickTot>0?`<span class="lchip sick">Sick: ${sickTot.toFixed(1)} hrs</span>`:'',
+      holTot>0?`<span class="lchip hol">Holiday: ${holTot.toFixed(1)} hrs</span>`:'',
+      kosTot>0?`<span class="lchip kos">KOS: ${kosTot.toFixed(1)} hrs</span>`:'',
+      lowTot>0?`<span class="lchip low">Lack of Work: ${lowTot.toFixed(1)} hrs — unpaid, not in total</span>`:''
+    ].join('') : '<span class="lchip-none">No leave hours this week</span>';
+  }
+
+  // Job rows
+  document.querySelectorAll('.jcard').forEach(card => {
+    const id = card.id.replace('card-','');
+    const isBU = card.hasAttribute('data-bu');
+    const jobEl = document.getElementById(`job-${id}`);
+    const job = jobEl?.value||'';
+    const isNew = job==='__NEW__', isOffice = job==='__OFFICE__';
+    const nb = NON_BILLABLE.includes(job);
+    const newName = (document.getElementById(`new-job-name-${id}`)?.value||'').trim();
+    const hasJob = (!!job&&!isNew)||( isNew&&!!newName);
+    let rowTot=0, ahDays=[];
+
+    DAYS.forEach(d => {
+      const inp = document.getElementById(`hrs-${id}-${d}`);
+      if (!inp) return;
+      const v = parseFloat(inp.value)||0;
+      rowTot+=v; dayTots[d]+=v;
+      inp.style.background = v>8?'#fef2f2':'#fff';
+      inp.style.borderColor = v>8?'#fca5a5':'#dde3ec';
+      inp.style.color = v>8?'#991b1b':'#1e2d40';
+      if (isBU) { const cb=document.getElementById(`ah-${id}-${d}`); if(cb?.checked&&v>0)ahDays.push(d); }
+    });
+
+    if (isOffice) offHrs+=rowTot;
+    else if (isBU) buHrs+=rowTot;
+    else if (!nb) regHrs+=rowTot;
+
+    const rt = document.getElementById(`rt-${id}`);
+    if (rt) { rt.textContent = rowTot>0?rowTot.toFixed(1):'—'; rt.className='rtpill'+(rowTot>8?' ot':rowTot===0?' z':''); }
+
+    if (isBU) {
+      const ahsum = document.getElementById(`ahsum-${id}`);
+      if (ahsum) { ahsum.textContent = ahDays.length?`${ahDays.join(', ')} after hrs`:''; ahsum.style.display=ahDays.length?'':'none'; }
+      const buli = document.getElementById(`buli-${id}`);
+      if (buli && ahDays.length) buli.textContent = `L&I 0521 — Board-Up · After hours: ${ahDays.join(', ')}`;
+      else if (buli) buli.textContent = 'L&I 0521 — Board-Up (auto-assigned)';
+    }
+
+    // Card state
+    if (!hasJob && rowTot>0) { missingJob++; card.className='jcard err'; if(jobEl)jobEl.style.borderColor='#fca5a5'; }
+    else if (hasJob&&rowTot>0&&!nb&&!isBU) {
+      filled++;
+      const liSel = document.getElementById(`li-sel-${id}-1`);
+      if (!liSel?.value) { missingLI++; card.className=`jcard${isOffice?' office':isNew?' newjob':''} needs-li`; }
+      else { card.className=`jcard${isOffice?' office':isNew?' newjob':''} valid`; }
+      if (jobEl) jobEl.style.borderColor='';
+      const h1=parseFloat(document.getElementById(`li-hrs-${id}-1`)?.value)||0;
+      const h2El=document.getElementById(`li-hrs-${id}-2`);
+      const h2=h2El?parseFloat(h2El.value)||0:0;
+      const ent=h1+(h2El?h2:0);
+      if(ent>0&&Math.abs(ent-rowTot)>0.01) splitErr++;
+    } else if (hasJob&&rowTot>0&&(nb||isBU)) {
+      filled++; card.className=`jcard${isBU?' valid':''}`;
+      if(jobEl)jobEl.style.borderColor='';
+    } else { card.className=`jcard${isOffice?' office':isNew?' newjob':''}`; if(jobEl)jobEl.style.borderColor=''; }
+  });
+
+  // Totals bar
+  const tb = document.getElementById('totalsBar');
+  if (tb) {
+    const totalHrs = regHrs+buHrs+leaveHrs+offHrs;
+    const chipHtml = DAYS.map(d => {
+      const v = dayTots[d];
+      return `<div class="wchip${v>8?' ot':''}"><div class="n">${v>0?v.toFixed(1):'0'}</div><div class="d">${d}</div></div>`;
+    }).join('');
+    const lsc = [
+      vacTot>0?`<span class="lsc vac">VAC ${vacTot.toFixed(1)}</span>`:'',
+      sickTot>0?`<span class="lsc sick">SICK ${sickTot.toFixed(1)}</span>`:'',
+      holTot>0?`<span class="lsc hol">HOL ${holTot.toFixed(1)}</span>`:''
+    ].join('');
+    tb.innerHTML = `<span class="wtlbl">Week totals:</span>${chipHtml}
+      <div class="wchip grand${totalHrs>40?' ot':''}"><div class="n bl">${totalHrs>0?totalHrs.toFixed(1):'0'}</div><div class="d">Total</div></div>
+      ${lsc?`<div class="leavesumchips">${lsc}</div>`:''}`;
+  }
+
+  // Badges
+  const rb = document.getElementById('reg-badge');
+  const rc = [...document.querySelectorAll('#regRows .jcard')].length;
+  if (rb) { rb.textContent=`${rc} row${rc!==1?'s':''}`; rb.className='tbadge'+(missingJob>0||missingLI>0?' warn':filled>0?' ok':''); }
+  const bb = document.getElementById('bu-badge');
+  const bc = [...document.querySelectorAll('#buRows .jcard')].length;
+  if (bb) { bb.textContent=`${bc} job${bc!==1?'s':''}`; bb.className='tbadge'+(bc>0?' ok':''); }
+
+  // Validation
+  const nameOk = !!document.getElementById('empName')?.value;
+  const weekOk = !!document.getElementById('wkStart')?.value;
+  let valid=true, msg='', level='ok';
+  if (!nameOk) { msg='Select your name to continue'; valid=false; level='err'; }
+  else if (!weekOk) { msg='Select your week start date'; valid=false; level='err'; }
+  else if (missingJob>0) { msg=`${missingJob} row${missingJob>1?'s':''} have hours but no location selected`; valid=false; level='err'; }
+  else if (untypedLeave>0) { msg=`${untypedLeave} leave day${untypedLeave>1?'s':''} need a type (Vacation, Sick, or Holiday)`; valid=false; level='warn'; }
+  else if (missingLI>0) { msg=`${missingLI} row${missingLI>1?'s':''} still need an L&I code`; valid=false; level='warn'; }
+  else if (splitErr>0) { msg=`${splitErr} row${splitErr>1?'s':''} — L&I hours don't add up to row total`; valid=false; level='warn'; }
+  else if (filled===0&&leaveHrs===0) { msg='Add at least one location row with hours or leave time'; valid=false; level='err'; }
+  else { msg=`Ready to submit — ${filled} row${filled!==1?'s':''}, ${(regHrs+buHrs+leaveHrs+offHrs).toFixed(1)} total hrs`; }
+
+  const vb=document.getElementById('valBar');
+  const vd=document.getElementById('vdot');
+  const vm=document.getElementById('valMsg');
+  if (vb) vb.className='val-bar '+level;
+  if (vd) vd.className='vdot '+level;
+  if (vm) vm.textContent=msg;
+  const btn=document.getElementById('btnSubmit');
+  if (btn) btn.disabled=!valid;
+}
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+function scheduleSave() {
+  const si = document.getElementById('savedIndicator');
+  if (si) si.textContent = 'Saving…';
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 1200);
+}
+
+async function doSave() {
+  const payload = buildPayload('draft');
+  if (!payload.employee_name || !payload.week_start) return;
+  try {
+    const r = await fetch('/timecard/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const j = await r.json();
+    if (j.ok) {
+      currentTcId = j.id;
+      const now = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+      const si = document.getElementById('savedIndicator');
+      const sb = document.getElementById('savedMsg');
+      if (si) si.textContent = `Saved ✓ ${now}`;
+      if (sb) sb.textContent = `All changes saved · ${now}`;
+      document.getElementById('savedBar').style.display='flex';
+    }
+  } catch(e) { console.error('Save error:', e); }
+}
+
+function buildPayload(status) {
+  const DAYS_LC = ['sun','mon','tue','wed','thu','fri','sat'];
+  const leave = DAYS.map((d,i) => ({
+    day_name: d,
+    hours: parseFloat(document.getElementById(`lv-hrs-${d}`)?.value)||0,
+    leave_type: document.getElementById(`lv-type-${d}`)?.value||''
+  }));
+
+  const rows = [];
+  document.querySelectorAll('.jcard').forEach(card => {
+    const id = card.id.replace('card-','');
+    const isBU = card.hasAttribute('data-bu');
+    const jobEl = document.getElementById(`job-${id}`);
+    const job = jobEl?.value||'';
+    const isNew = job==='__NEW__', isOffice=job==='__OFFICE__';
+    const isNonBill = NON_BILLABLE.includes(job);
+    const jobName = isNew ? (document.getElementById(`new-job-name-${id}`)?.value||'')
+                  : isOffice ? 'Office' : job;
+    const dayVals = {};
+    DAYS_LC.forEach((d,i) => { dayVals[d] = parseFloat(document.getElementById(`hrs-${id}-${DAYS[i]}`)?.value)||0; });
+    const ah = {};
+    if (isBU) DAYS_LC.forEach((d,i) => { const cb=document.getElementById(`ah-${id}-${DAYS[i]}`); if(cb?.checked) ah[d]=true; });
+    rows.push({
+      section: isBU?'boardup':'regular',
+      job_name: jobName,
+      is_new_job: isNew,
+      is_office: isOffice,
+      is_nonbill: isNonBill,
+      ...dayVals,
+      total_hrs: DAYS_LC.reduce((s,d)=>s+(dayVals[d]||0),0),
+      li_code_1: document.getElementById(`li-sel-${id}-1`)?.value||'',
+      li_hrs_1: parseFloat(document.getElementById(`li-hrs-${id}-1`)?.value)||0,
+      li_code_2: document.getElementById(`li-sel-${id}-2`)?.value||'',
+      li_hrs_2: parseFloat(document.getElementById(`li-hrs-${id}-2`)?.value)||0,
+      after_hours: ah
+    });
+  });
+
+  const oncall = DAYS.filter(d => document.getElementById(`oc-${d}`)?.checked);
+
+  return {
+    id: currentTcId,
+    employee_name: document.getElementById('empName')?.value||'',
+    employee_email: document.getElementById('empEmail')?.value||'',
+    week_start: document.getElementById('wkStart')?.value||'',
+    week_end: document.getElementById('wkEnd')?.value||'',
+    notes: document.getElementById('tcNotes')?.value||'',
+    status,
+    leave,
+    rows,
+    oncall_days: oncall
+  };
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function onSubmit() {
+  // First save draft
+  await doSave();
+  // Check mismatches
+  const payload = buildPayload('draft');
+  try {
+    const r = await fetch('/timecard/check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const j = await r.json();
+    if (j.flags && j.flags.length > 0) {
+      showMismatch(j.flags);
+    } else {
+      await doFinalSubmit([]);
+    }
+  } catch(e) { await doFinalSubmit([]); }
+}
+
+function showMismatch(flags) {
+  pendingFlags = flags;
+  const sub = document.getElementById('mmSub');
+  if (sub) sub.textContent = `${document.getElementById('empName')?.value||''} · Week of ${document.getElementById('wkStart')?.value||''}`;
+  const intro = document.getElementById('mmIntro');
+  if (intro) intro.innerHTML = `<div class="mm-intro-inner"><div class="mm-icon">!</div><div class="mm-text"><strong>${flags.length} issue${flags.length>1?'s':''} found.</strong> Your timecard has jobs that don't fully match the Job Board. You can go back and fix them, or submit anyway — your supervisor will be notified.</div></div>`;
+  const body = document.getElementById('mmBody');
+  const groups = { unassigned: [], unmatched: [], closed: [], newjob: [] };
+  flags.forEach(f => { if(groups[f.flag_type]) groups[f.flag_type].push(f); });
+  let html='';
+  if (groups.unassigned.length) {
+    html+=`<div class="issue-grp"><div class="ig-title red"><div class="igdot red"></div>Not assigned to you in the Job Board</div>
+    ${groups.unassigned.map(f=>`<div class="irow red"><div class="iicon red">!</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(1)} hrs</div></div>`).join('')}</div>`;
+  }
+  if (groups.closed.length) {
+    html+=`<div class="issue-grp"><div class="ig-title amber"><div class="igdot amber"></div>Job is marked complete in the Job Board</div>
+    ${groups.closed.map(f=>`<div class="irow amber"><div class="iicon amber">!</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(1)} hrs</div></div>`).join('')}</div>`;
+  }
+  if (groups.unmatched.length) {
+    html+=`<div class="issue-grp"><div class="ig-title gray"><div class="igdot gray"></div>Job not found in Job Board</div>
+    ${groups.unmatched.map(f=>`<div class="irow gray"><div class="iicon gray">?</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(1)} hrs</div></div>`).join('')}</div>`;
+  }
+  if (body) body.innerHTML = html;
+  document.getElementById('btnConfirm').onclick = () => doFinalSubmit(pendingFlags);
+  document.getElementById('mmBackdrop').style.display='flex';
+}
+
+function closeModal() { document.getElementById('mmBackdrop').style.display='none'; }
+
+async function doFinalSubmit(flags) {
+  closeModal();
+  const payload = { ...buildPayload('submitted'), flags };
+  try {
+    const r = await fetch('/timecard/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const j = await r.json();
+    if (j.ok) {
+      const name = encodeURIComponent(document.getElementById('empName')?.value||'');
+      const week = encodeURIComponent(document.getElementById('wkStart')?.value||'');
+      const hrs  = encodeURIComponent((document.querySelectorAll('.wchip.grand')[0]?.querySelector('.n')?.textContent||'0'));
+      window.location.href = `/timecard/success?id=${j.id}&name=${name}&week=${week}&hrs=${hrs}`;
+    }
+  } catch(e) { alert('Submission failed. Please try again.'); }
+}
+
+// ── Load draft ────────────────────────────────────────────────────────────────
+function onNameChange() { tryLoadDraft(); scheduleSave(); recalc(); }
+function onWeekChange() {
+  const s = document.getElementById('wkStart')?.value;
+  if (s) {
+    const end = new Date(s+'T12:00:00'); end.setDate(end.getDate()+6);
+    document.getElementById('wkEnd').value = end.toISOString().split('T')[0];
+  }
+  tryLoadDraft(); recalc();
+}
+
+async function tryLoadDraft() {
+  const name = document.getElementById('empName')?.value;
+  const week = document.getElementById('wkStart')?.value;
+  if (!name || !week) return;
+  try {
+    const r = await fetch(`/timecard/draft?name=${encodeURIComponent(name)}&week=${encodeURIComponent(week)}`);
+    const draft = await r.json();
+    if (draft) loadDraft(draft);
+  } catch(e) {}
+}
+
+function loadDraft(draft) {
+  currentTcId = draft.id;
+  if (draft.notes) document.getElementById('tcNotes').value = draft.notes;
+  if (draft.employee_email) document.getElementById('empEmail').value = draft.employee_email;
+  // Load leave
+  (draft.leave||[]).forEach(lv => {
+    const hEl = document.getElementById(`lv-hrs-${lv.day_name}`);
+    const tEl = document.getElementById(`lv-type-${lv.day_name}`);
+    if (hEl) hEl.value = lv.hours;
+    if (tEl) { tEl.value = lv.leave_type||''; tEl.className = (lv.leave_type||'').toLowerCase(); }
+  });
+  // Clear existing rows
+  document.getElementById('regRows').innerHTML='';
+  document.getElementById('buRows').innerHTML='';
+  // Load rows
+  const DAYS_LC=['sun','mon','tue','wed','thu','fri','sat'];
+  ;(draft.rows||[]).forEach(row => {
+    const type = row.section==='boardup'?'bu':'reg';
+    addRow(type);
+    const id = rowId;
+    if (type==='reg') {
+      const jobSel = document.getElementById(`job-${id}`);
+      if (jobSel) {
+        if (row.is_office) jobSel.value='__OFFICE__';
+        else if (row.is_new_job) { jobSel.value='__NEW__'; const ni=document.getElementById(`new-job-name-${id}`); if(ni){ni.closest('.new-job-area').style.display='block'; ni.value=row.job_name||'';} }
+        else if (row.is_nonbill) jobSel.value=row.job_name;
+        else jobSel.value=row.job_name||'';
+        onJobChange(id);
+      }
+    } else {
+      const inp=document.getElementById(`job-${id}`);
+      if(inp){inp.value=row.job_name||''; onBUInput(id);}
+    }
+    DAYS_LC.forEach((d,i)=>{ const el=document.getElementById(`hrs-${id}-${DAYS[i]}`); if(el&&row[d]) el.value=row[d]; });
+    if (row.li_code_1) {
+      const s1=document.getElementById(`li-sel-${id}-1`);
+      if(s1){s1.value=row.li_code_1; onLIChange(id);}
+      const h1=document.getElementById(`li-hrs-${id}-1`);
+      if(h1){h1.value=row.li_hrs_1||'';}
+    }
+    if (row.li_code_2) {
+      addCode2(id);
+      const s2=document.getElementById(`li-sel-${id}-2`);
+      if(s2)s2.value=row.li_code_2;
+      const h2=document.getElementById(`li-hrs-${id}-2`);
+      if(h2)h2.value=row.li_hrs_2||'';
+    }
+    if (row.section==='boardup') {
+      try {
+        const ah = typeof row.after_hours==='string'?JSON.parse(row.after_hours):(row.after_hours||{});
+        DAYS_LC.forEach((d,i)=>{ if(ah[d]){const cb=document.getElementById(`ah-${id}-${DAYS[i]}`);if(cb){cb.checked=true;onAH(id,DAYS[i]);}} });
+      } catch(e){}
+    }
+  });
+  // On-call
+  ;(draft.oncall_days||[]).forEach(d=>{const cb=document.getElementById(`oc-${d}`);if(cb)cb.checked=true;});
+  const now = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  document.getElementById('savedMsg').textContent=`Draft loaded · saved ${now}`;
+  document.getElementById('savedBar').style.display='flex';
+  recalc();
+}
+
+function clearForm() {
+  if (!confirm('Clear all entries and start fresh?')) return;
+  currentTcId = null;
+  DAYS.forEach(d=>{ const h=document.getElementById(`lv-hrs-${d}`);const t=document.getElementById(`lv-type-${d}`); if(h)h.value=''; if(t){t.value='';t.className='';} });
+  document.getElementById('regRows').innerHTML='';
+  document.getElementById('buRows').innerHTML='';
+  document.getElementById('tcNotes').value='';
+  addRow('reg'); addRow('reg');
+  recalc();
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('pane-'+t).classList.add('active');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+(function init() {
+  const today = new Date();
+  const sun = new Date(today); sun.setDate(today.getDate()-today.getDay());
+  const sat = new Date(sun); sat.setDate(sun.getDate()+6);
+  const fmt = d=>d.toISOString().split('T')[0];
+  document.getElementById('wkStart').value=fmt(sun);
+  document.getElementById('wkEnd').value=fmt(sat);
+
+  buildLeaveGrid();
+
+  // On-call checkboxes
+  const oc = document.getElementById('oncallRow');
+  DAYS.forEach(d=>{ const l=document.createElement('label'); l.className='ocday'; l.innerHTML=`<input type="checkbox" id="oc-${d}" onchange="scheduleSave()"> ${d}`; oc.appendChild(l); });
+
+  addRow('reg');
+  addRow('reg');
+})();
+</script>
+</body>
+</html>

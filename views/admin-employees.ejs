@@ -1,0 +1,140 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Employees — HRI Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#1e2d40;background:#eef1f5;min-height:100vh}
+.nav{background:#1a2e4a;height:50px;display:flex;align-items:center;padding:0 16px;gap:10px}
+.nav a{color:rgba(255,255,255,.6);font-size:12px;text-decoration:none}.nav a:hover{color:#fff}
+.nav h1{color:#fff;font-size:14px;font-weight:600}.nav-spacer{flex:1}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+.card{background:#fff;border:0.5px solid #dde3ec;border-radius:10px;overflow:hidden;margin-bottom:14px}
+.card-hdr{background:#1a2e4a;color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.btn{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none}
+.btn-primary{background:#2e6fad;color:#fff}
+.btn-white{background:#fff;color:#1a2e4a;border:0.5px solid rgba(255,255,255,.3)}
+.btn-danger{background:#fee2e2;color:#991b1b;border:none}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#f8f9fb;padding:7px 12px;text-align:left;font-size:10px;font-weight:600;color:#4a5e78;text-transform:uppercase;letter-spacing:.3px;border-bottom:0.5px solid #dde3ec}
+tbody td{padding:8px 12px;border-bottom:0.5px solid #f0f4f8;vertical-align:middle}
+tbody tr:last-child td{border:none}
+tbody tr:hover td{background:#f8fafb}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.badge.crew{background:#d1fae5;color:#065f46}
+.badge.manager{background:#fef3c7;color:#92400e}
+.badge.bookkeeper{background:#dbeafe;color:#1d4ed8}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(10,20,40,.5);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:10px;width:100%;max-width:500px;overflow:hidden}
+.modal-hdr{background:#1a2e4a;color:#fff;padding:12px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.modal-body{padding:16px}
+.field{margin-bottom:12px}
+.field label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#4a5e78;display:block;margin-bottom:4px}
+.field input,.field select{width:100%;border:0.5px solid #dde3ec;border-radius:6px;padding:7px 10px;font-size:13px;color:#1e2d40;background:#fff}
+.field input:focus,.field select:focus{outline:none;border-color:#2e6fad}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-footer{padding:12px 16px;border-top:0.5px solid #dde3ec;display:flex;gap:8px;justify-content:flex-end;background:#f8f9fb}
+.msg{padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;display:none}
+.msg.ok{background:#d1fae5;color:#065f46;display:block}
+.msg.err{background:#fee2e2;color:#991b1b;display:block}
+.note{font-size:11px;color:#8fa0b8;margin-top:10px;line-height:1.5}
+</style></head><body>
+<nav class="nav">
+  <a href="/">Job Board</a>
+  <a href="/admin?pw=<%= pw %>">← Admin Dashboard</a>
+  <h1 style="margin-left:8px">Employee Manager</h1>
+  <div class="nav-spacer"></div>
+  <button class="btn btn-white" onclick="openAdd()">+ Add employee</button>
+</nav>
+
+<div class="wrap">
+  <div id="msg" class="msg"></div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <span>All employees (<%= people.length %>)</span>
+      <button class="btn btn-white" onclick="openAdd()" style="font-size:11px;padding:5px 12px">+ Add employee</button>
+    </div>
+    <table>
+      <thead><tr><th>Nickname</th><th>Full name</th><th>Role</th><th>Email</th><th>Phone</th><th>Address</th><th></th></tr></thead>
+      <tbody>
+      <% people.forEach(function(p){ %>
+        <tr>
+          <td><strong><%= p.nickname %></strong></td>
+          <td style="color:#4a5e78"><%= p.name %></td>
+          <td><span class="badge <%= p.role %>"><%= p.role.charAt(0).toUpperCase()+p.role.slice(1) %></span></td>
+          <td style="font-size:11px;color:#2e6fad"><%= p.email||'—' %></td>
+          <td style="font-size:11px;color:#4a5e78"><%= p.phone||'—' %></td>
+          <td style="font-size:11px;color:#4a5e78"><%= p.address||'—' %></td>
+          <td style="display:flex;gap:6px">
+            <button class="btn" style="font-size:11px;padding:4px 10px;background:#f0f4f8;color:#1a2e4a;border:none"
+              onclick="openEdit(<%- JSON.stringify(p) %>)">Edit</button>
+            <button class="btn btn-danger" style="font-size:11px;padding:4px 10px"
+              onclick="deactivate(<%= p.id %>, '<%= p.nickname %>')">Remove</button>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    <div class="note" style="padding:10px 14px">
+      Adding a new employee automatically adds them to the Job Board crew list in real time.
+      Removing an employee hides them from the timecard and Job Board — their submitted timecards are preserved.
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="modalTitle">Add employee</span>
+      <button onclick="closeModal()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;padding:0;line-height:1">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <div class="field-row">
+        <div class="field"><label>Nickname * <span style="font-weight:400;text-transform:none">(shown on Job Board)</span></label><input type="text" id="fNick" placeholder="e.g. Zack"></div>
+        <div class="field"><label>Full name *</label><input type="text" id="fName" placeholder="e.g. Zachary Burgess"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Email</label><input type="email" id="fEmail" placeholder="email@example.com"></div>
+        <div class="field"><label>Phone</label><input type="tel" id="fPhone" placeholder="360-000-0000"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Role *</label>
+          <select id="fRole"><option value="crew">Crew</option><option value="manager">Manager</option><option value="bookkeeper">Bookkeeper</option></select>
+        </div>
+        <div class="field"><label>Address</label><input type="text" id="fAddress" placeholder="Optional — street, city, state"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f0f4f8;color:#4a5e78;border:none" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">Save employee</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PW = '<%= pw %>';
+function showMsg(txt, type){ const m=document.getElementById('msg'); m.textContent=txt; m.className='msg '+type; setTimeout(()=>m.style.display='none', 4000); }
+function openAdd(){ document.getElementById('editId').value=''; document.getElementById('fNick').value=''; document.getElementById('fName').value=''; document.getElementById('fEmail').value=''; document.getElementById('fPhone').value=''; document.getElementById('fRole').value='crew'; document.getElementById('fAddress').value=''; document.getElementById('modalTitle').textContent='Add employee'; document.getElementById('modalBg').classList.add('open'); }
+function openEdit(p){ document.getElementById('editId').value=p.id; document.getElementById('fNick').value=p.nickname||''; document.getElementById('fName').value=p.name||''; document.getElementById('fEmail').value=p.email||''; document.getElementById('fPhone').value=p.phone||''; document.getElementById('fRole').value=p.role||'crew'; document.getElementById('fAddress').value=p.address||''; document.getElementById('modalTitle').textContent='Edit employee'; document.getElementById('modalBg').classList.add('open'); }
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+async function saveEmployee(){
+  const id=document.getElementById('editId').value;
+  const body={ name:document.getElementById('fName').value.trim(), nickname:document.getElementById('fNick').value.trim(), email:document.getElementById('fEmail').value.trim(), phone:document.getElementById('fPhone').value.trim(), role:document.getElementById('fRole').value, address:document.getElementById('fAddress').value.trim() };
+  if(!body.name||!body.nickname){ alert('Name and nickname are required'); return; }
+  const url = id ? `/admin/employees/${id}/update?pw=${PW}` : `/admin/employees/add?pw=${PW}`;
+  const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j = await r.json();
+  if(j.ok){ closeModal(); showMsg(id?'Employee updated.':'Employee added — Job Board crew updated.','ok'); setTimeout(()=>location.reload(),1500); }
+  else showMsg('Error: '+j.error,'err');
+}
+async function deactivate(id, name){
+  if(!confirm(`Remove ${name} from the system? Their submitted timecards will be preserved.`)) return;
+  const r = await fetch(`/admin/employees/${id}/deactivate?pw=${PW}`,{method:'POST'});
+  const j = await r.json();
+  if(j.ok){ showMsg(`${name} removed.`,'ok'); setTimeout(()=>location.reload(),1500); }
+}
+document.getElementById('modalBg').addEventListener('click',e=>{ if(e.target===document.getElementById('modalBg'))closeModal(); });
+</script>
+</body></html>

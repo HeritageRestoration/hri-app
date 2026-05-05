@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Job Assignments</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#1e2d40;background:#eef1f5;min-height:100vh}
+.nav{background:#1a2e4a;height:50px;display:flex;align-items:center;padding:0 16px;gap:10px}
+.nav a{color:rgba(255,255,255,.6);font-size:12px;text-decoration:none}.nav a:hover{color:#fff}
+.nav-logo{color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;padding-right:16px;border-right:1px solid rgba(255,255,255,.15);margin-right:4px}
+.nav-spacer{flex:1}
+.wrap{max-width:680px;margin:0 auto;padding:16px}
+.card{background:#fff;border:0.5px solid #dde3ec;border-radius:10px;overflow:hidden;margin-bottom:14px}
+.card-hdr{padding:10px 14px;border-bottom:0.5px solid #dde3ec;font-size:12px;font-weight:600;color:#1a2e4a;background:#f8f9fb}
+.card-body{padding:12px 14px}
+.mf{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.mf label{font-size:10px;font-weight:600;color:#4a5e78;text-transform:uppercase;letter-spacing:.3px}
+.mf input,.mf select{border:0.5px solid #dde3ec;border-radius:5px;padding:6px 8px;font-size:13px;width:100%;background:#fff;color:#1e2d40}
+.mf input:focus,.mf select:focus{outline:none;border-color:#2e6fad}
+.btn-submit{width:100%;background:#1a2e4a;color:#fff;border:none;border-radius:7px;padding:10px;font-size:13px;font-weight:600;cursor:pointer}
+.result-hdr{padding:10px 14px;font-size:12px;font-weight:600;color:#fff;display:flex;align-items:center;gap:7px}
+.result-hdr.ok{background:#2d7a4f}
+.result-hdr.warn{background:#b45309}
+.result-hdr.danger{background:#991b1b}
+.issue-item{display:flex;gap:8px;padding:10px 14px;border-bottom:0.5px solid #f0f4f8;align-items:flex-start}
+.issue-item:last-child{border:none}
+.issue-item.red{background:#fff5f5}
+.issue-item.amber{background:#fffbf0}
+.issue-item.green{background:#f0fdf4}
+.iicon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px}
+.iicon.red{background:#fee2e2;color:#991b1b}
+.iicon.amber{background:#fef3c7;color:#92400e}
+.iicon.green{background:#d1fae5;color:#065f46}
+.ijob{font-size:12px;font-weight:600}
+.idesc{font-size:11px;color:#64748b;margin-top:2px;line-height:1.4}
+.ihrs{font-size:11px;font-weight:600;color:#4a5e78;margin-left:auto;white-space:nowrap}
+.action-note{background:#fffbf0;border-left:3px solid #d97706;padding:10px 14px;font-size:12px;color:#92400e;margin:10px 14px;border-radius:0 5px 5px 0}
+.back-link{display:inline-block;margin-top:16px;color:#2e6fad;font-size:13px;text-decoration:none}
+.intro{background:#e0f2ea;border:0.5px solid #9fe1cb;border-radius:8px;padding:10px 14px;font-size:12px;color:#085041;margin-bottom:14px;line-height:1.6}
+</style></head><body>
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Fire Water Storm
+  </a>
+  <a href="/timecard">Time Card</a>
+  <div class="nav-spacer"></div>
+</nav>
+<div class="wrap">
+  <div class="intro">Check whether the jobs on your timecard match your Job Board assignments. If anything shows in red, contact your supervisor before submitting.</div>
+
+  <div class="card">
+    <div class="card-hdr">Look up my assignments</div>
+    <div class="card-body">
+      <form method="GET" action="/my-assignments">
+        <div class="mf"><label>Your name</label>
+          <input type="text" name="name" value="<%= employeeName %>" placeholder="Enter your first name" required></div>
+        <div class="mf"><label>Week</label>
+          <select name="week">
+            <% weeks.forEach(function(w){ const ws=w.week_start.toISOString().split('T')[0]; %>
+              <option value="<%= ws %>" <%=selectedWeek===ws?'selected':''%>>
+                Week of <%=new Date(ws+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})%>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+        <button type="submit" class="btn-submit">Check my assignments</button>
+      </form>
+    </div>
+  </div>
+
+  <% if(employeeName && selectedWeek){ %>
+  <% if(!myRows.length){ %>
+    <div class="card"><div class="card-body" style="text-align:center;color:#8fa0b8;padding:24px">No job rows found for <strong><%= employeeName %></strong> this week. Make sure your name matches what's on your timecard.</div></div>
+  <% } else {
+    const issues = myRows.filter(r=>r.check_status!=='ok');
+    const ok = myRows.filter(r=>r.check_status==='ok');
+  %>
+  <div class="card">
+    <div class="result-hdr <%= issues.length>0?'danger':'ok' %>">
+      <%= issues.length>0 ? '⚠ '+issues.length+' issue'+(issues.length>1?'s':'')+' found — see below' : '✓ All assignments look correct' %>
+    </div>
+    <% issues.forEach(function(r){ %>
+      <div class="issue-item <%= r.check_status==='unassigned'?'red':'amber' %>">
+        <div class="iicon <%= r.check_status==='unassigned'?'red':'amber' %>">!</div>
+        <div style="flex:1">
+          <div class="ijob"><%= r.job_name %></div>
+          <div class="idesc"><%= r.description||'Issue with this job assignment' %></div>
+        </div>
+        <div class="ihrs"><%= (parseFloat(r.total_hrs)||0).toFixed(1) %> hrs</div>
+      </div>
+    <% }) %>
+    <% ok.forEach(function(r){ %>
+      <div class="issue-item green">
+        <div class="iicon green">✓</div>
+        <div style="flex:1">
+          <div class="ijob"><%= r.job_name %></div>
+          <div class="idesc" style="color:#065f46">Assigned to you in the Job Board</div>
+        </div>
+        <div class="ihrs"><%= (parseFloat(r.total_hrs)||0).toFixed(1) %> hrs</div>
+      </div>
+    <% }) %>
+  </div>
+  <% if(issues.length>0){ %>
+  <div class="action-note"><strong>What to do:</strong> Contact your supervisor. Do not resubmit your timecard until they advise you — they can update job assignments from the admin dashboard.</div>
+  <% } %>
+  <% } %>
+  <% } %>
+
+  <a href="/timecard" class="back-link">← Back to Time Card</a>
+</div></body></html>
