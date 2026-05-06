@@ -719,28 +719,35 @@ function openCustPopup(idx) {
 }
 function closeCustPopup() { document.getElementById('custPopupBg').classList.remove('open'); custPopupIdx = null; }
 
-// Wait for DOM to be ready before attaching popup listeners
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('cpSaveBtn').addEventListener('click', async () => {
+  document.getElementById('cpSaveBtn')?.addEventListener('click', async () => {
     if (custPopupIdx === null) return;
     const address = document.getElementById('cpAddress').value.trim();
     const phone   = document.getElementById('cpPhone').value.trim();
     const jobName = state.jobs[custPopupIdx]?.name;
-    state.jobs[custPopupIdx].address = address;
-    state.jobs[custPopupIdx].phone   = phone;
+    // Update local state immediately so it doesn't get lost
+    if (state.jobs[custPopupIdx]) {
+      state.jobs[custPopupIdx].address = address;
+      state.jobs[custPopupIdx].phone   = phone;
+    }
     try {
-      await fetch('/admin/customer/update', {
+      const r = await fetch('/admin/customer/update', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ jobName, address, phone })
       });
-      document.getElementById('cpSaved').style.display = '';
-      setTimeout(() => document.getElementById('cpSaved').style.display = 'none', 2000);
-      renderBoard();
+      const j = await r.json();
+      if (j.ok) {
+        document.getElementById('cpSaved').style.display = '';
+        setTimeout(() => document.getElementById('cpSaved').style.display = 'none', 2000);
+        renderBoard();
+      } else {
+        alert('Save failed — please try again');
+      }
     } catch(e) { alert('Save failed — please try again'); }
   });
-  document.getElementById('cpCancelBtn').addEventListener('click', closeCustPopup);
-  document.getElementById('custPopupBg').addEventListener('click', e => {
+  document.getElementById('cpCancelBtn')?.addEventListener('click', closeCustPopup);
+  document.getElementById('custPopupBg')?.addEventListener('click', e => {
     if (e.target === document.getElementById('custPopupBg')) closeCustPopup();
   });
 });

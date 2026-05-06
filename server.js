@@ -235,8 +235,8 @@ app.post('/admin/person/:id/email', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── TWEAK 5: Customer address/phone update ────────────────────────────────────
-app.post('/admin/customer/update', requireAdmin, async (req, res) => {
+// ── TWEAK 5: Customer address/phone update (no admin auth needed — called from Job Board) ──
+app.post('/admin/customer/update', async (req, res) => {
   try {
     const { jobName, address, phone } = req.body;
     const boardData = await db.loadBoardData();
@@ -245,7 +245,7 @@ app.post('/admin/customer/update', requireAdmin, async (req, res) => {
       job.address = address || '';
       job.phone   = phone   || '';
       await db.saveBoardData(boardData);
-      // Update in-memory state and broadcast
+      // Update in-memory state and broadcast to all Job Board clients
       appData = boardData;
       broadcastAll({ type: 'full_refresh', data: appData });
     }
