@@ -388,26 +388,37 @@ wss.on('connection', ws => {
       broadcastAll({ type: 'full_refresh', data: appData });
 
     } else if (msg.type === 'delete_job') {
+      const deletedJob = appData.jobs[msg.idx];
+      const deletedName = deletedJob ? deletedJob.name : null;
       appData.jobs.splice(msg.idx, 1);
-      if (appData.weeks) {
-        Object.keys(appData.weeks).forEach(wk => {
-          const newCells = {};
-          Object.keys(appData.weeks[wk].cells||{}).forEach(k => {
-            const u=k.indexOf('_'); const ni=parseInt(k.substring(0,u)); const day=k.substring(u+1);
-            if(ni<msg.idx) newCells[k]=appData.weeks[wk].cells[k];
-            else if(ni>msg.idx) newCells[(ni-1)+'_'+day]=appData.weeks[wk].cells[k];
+
+      // Name-based keys: just remove the deleted job's cells by name
+      // Everything else is untouched — no index shifting needed
+      if (deletedName) {
+        const removeJobCells = (cells) => {
+          if (!cells) return {};
+          const cleaned = {};
+          Object.keys(cells).forEach(k => {
+            const under = k.indexOf('_');
+            const prefix = k.substring(0, under);
+            // Remove cells belonging to the deleted job name
+            if (prefix !== deletedName) cleaned[k] = cells[k];
           });
-          appData.weeks[wk].cells = newCells;
-        });
+          return cleaned;
+        };
+
+        // Clean weeks structure
+        if (appData.weeks) {
+          Object.keys(appData.weeks).forEach(wk => {
+            appData.weeks[wk].cells = removeJobCells(appData.weeks[wk].cells || {});
+          });
+        }
+        // Clean legacy flat cells
+        appData.cells = removeJobCells(appData.cells || {});
       }
-      const newCells={};
-      Object.keys(appData.cells||{}).forEach(k=>{
-        const u=k.indexOf('_');const ni=parseInt(k.substring(0,u));const day=k.substring(u+1);
-        if(ni<msg.idx) newCells[k]=appData.cells[k];
-        else if(ni>msg.idx) newCells[(ni-1)+'_'+day]=appData.cells[k];
-      });
-      appData.cells=newCells;
+
       await db.saveBoardData(appData);
+      broadcastAll({ type: 'full_refresh', data: appData });
       broadcastAll({ type: 'full_refresh', data: appData });
     }
   });

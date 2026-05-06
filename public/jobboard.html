@@ -625,7 +625,8 @@ function renderCrewCell(td,i,day){
   td.querySelectorAll('.rm').forEach(btn=>btn.addEventListener('click',e=>{
     e.stopPropagation();
     const c=jobCD(i,day); c.names=c.names.filter(n=>n!==btn.dataset.name);
-    send({type:'update_cell',weekKey:activeWeekKey,key:cellKey(i,day),cell:c}); renderCrewCell(td,i,day);
+    const jobNameKey=(state.jobs[i]&&state.jobs[i].name)?state.jobs[i].name:String(i);
+    send({type:'update_cell',weekKey:activeWeekKey,key:cellKey(jobNameKey,day),cell:c}); renderCrewCell(td,i,day);
   }));
 }
 
