@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
 app.get('/timecard', async (req, res) => {
   try {
     const people  = await db.getPeople();
-    const crew    = people.filter(p => p.role === 'crew' || p.role === 'manager');
+    const crew    = people.filter(p => ['crew','manager','estimator'].includes(p.role));
     const boardData = await db.loadBoardData();
     const jobs    = boardData.jobs || [];
     res.render('timecard', { crew, jobs, error: null });

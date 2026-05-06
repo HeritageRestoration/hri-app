@@ -341,12 +341,15 @@ function updateLIForOffice(id) {
   if (!blk) return;
   const sel = blk.querySelector('select');
   if (sel) {
-    sel.innerHTML = `<option value="">— select office code —</option>${OFFICE_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}`;
+    // Show all codes — office location still gets full list
+    const fieldOpts = FIELD_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+    const officeOpts = OFFICE_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+    sel.innerHTML = `<option value="">— select code —</option><optgroup label="Field work">${fieldOpts}</optgroup><optgroup label="Office / Admin">${officeOpts}</optgroup>`;
     sel.className = 'eq';
     sel.onchange = () => onLIChange(id);
   }
   const status = document.getElementById(`li-status-${id}`);
-  if (status) { status.textContent = 'Office L&I code required'; status.className = 'listatus ofk'; }
+  if (status) { status.textContent = 'L&I code required'; status.className = 'listatus req'; }
   blk.className = 'liblock empty';
 }
 
@@ -354,8 +357,11 @@ function resetLIForField(id) {
   const blk = document.getElementById(`li-blk-${id}-1`);
   if (!blk) return;
   const sel = blk.querySelector('select');
-  if (sel && !OFFICE_LI.find(c=>c.v===sel.value)) {
-    sel.innerHTML = `<option value="">— select code —</option>${FIELD_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}`;
+  if (sel) {
+    // Always show full combined list — no restriction based on location
+    const fieldOpts = FIELD_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+    const officeOpts = OFFICE_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+    sel.innerHTML = `<option value="">— select code —</option><optgroup label="Field work">${fieldOpts}</optgroup><optgroup label="Office / Admin">${officeOpts}</optgroup>`;
     sel.className = 'eq'; sel.onchange = () => onLIChange(id);
   }
   const status = document.getElementById(`li-status-${id}`);
@@ -383,15 +389,16 @@ function onLIChange(id) {
 function addCode2(id) {
   const wrap = document.getElementById(`li-wrap-${id}`);
   const addBtn = document.getElementById(`add-code-${id}`);
-  const jobSel = document.getElementById(`job-${id}`);
-  const isOffice = jobSel?.value==='__OFFICE__';
-  const codes = isOffice ? OFFICE_LI : FIELD_LI;
+  // Always show full combined list for code 2
+  const fieldOpts = FIELD_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+  const officeOpts = OFFICE_LI.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+  const allOpts = `<option value="">— select code —</option><optgroup label="Field work">${fieldOpts}</optgroup><optgroup label="Office / Admin">${officeOpts}</optgroup>`;
   const blk = document.createElement('div');
   blk.className = 'liblock'; blk.id = `li-blk-${id}-2`;
   blk.innerHTML = `<label>Code 2 <span style="font-size:10px;color:#8fa0b8;font-weight:400;text-transform:none;letter-spacing:0">(optional)</span>
     <button class="rm-sm" onclick="removeCode2(${id})">×</button></label>
     <select id="li-sel-${id}-2" onchange="recalc()" style="border:0.5px solid #dde3ec;border-radius:4px;padding:3px 6px;font-size:11px;background:#fff;width:100%">
-      <option value="">— select code —</option>${codes.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}
+      ${allOpts}
     </select>
     <div class="lihrs">
       <input type="number" id="li-hrs-${id}-2" min="0" step="0.5" placeholder="hrs" oninput="checkSplit(${id})" style="width:48px;border:0.5px solid #dde3ec;border-radius:4px;padding:3px 4px;font-size:12px;text-align:center;background:#fff">

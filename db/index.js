@@ -420,6 +420,14 @@ async function getPeople(role) {
   return r.rows;
 }
 
+// Get people who should receive Friday/Monday reminders (crew + estimators)
+async function getCrewForReminders() {
+  const r = await pool.query(
+    "SELECT * FROM people WHERE role IN ('crew','estimator') AND active=TRUE ORDER BY name"
+  );
+  return r.rows;
+}
+
 async function addPerson(data) {
   const r = await pool.query(
     'INSERT INTO people (name, nickname, role, email, phone, address) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
@@ -465,6 +473,6 @@ module.exports = {
   pool, initDB, PEOPLE, LI_CODES, LEAVE_TYPES,
   upsertTimecard, submitTimecard, getTimecardDetail, getDraftForEmployee,
   getTimecardsByWeek, getWeeksWithTimecards, getCrossRef,
-  getPeople, addPerson, updatePerson, deactivatePerson, updatePersonEmail,
+  getPeople, getCrewForReminders, addPerson, updatePerson, deactivatePerson, updatePersonEmail,
   loadBoardData, saveBoardData
 };
