@@ -158,8 +158,10 @@ const LEAVE_TYPES = [
   {v:'KOS',          l:'KOS (Kept on Salary)', paid:true},
   {v:'Lack of Work', l:'Lack of Work',         paid:false},
 ];
-// TWEAK 2: Lack of Work no longer in job dropdown NON_BILLABLE
-const NON_BILLABLE = ['Shop (Non-Billable)'];
+// TWEAK: Lack of Work is the only non-billable that hides L&I
+// Shop (Non-Billable) still shows L&I codes
+const NON_BILLABLE     = ['Shop (Non-Billable)', 'Lack of Work'];
+const NO_LI_REQUIRED   = ['Lack of Work']; // only these hide the L&I section
 let rowId = 0, saveTimer = null, currentTcId = null, pendingFlags = [];
 
 // ── Leave grid ────────────────────────────────────────────────────────────────
@@ -172,7 +174,7 @@ function buildLeaveGrid() {
     col.className = 'leave-day';
     col.innerHTML = `
       <span class="dl">${d}</span>
-      <input type="number" id="lv-hrs-${d}" min="0" max="24" step="0.5" placeholder="0" oninput="onLeaveHrs('${d}')">
+      <input type="number" id="lv-hrs-${d}" min="0" max="24" step="0.25" placeholder="0" oninput="onLeaveHrs('${d}')">
       <select id="lv-type-${d}" onchange="onLeaveType('${d}')">
         <option value="">— type —</option>${ltOpts}
       </select>`;
@@ -226,7 +228,7 @@ function dayInputs(id) {
   return DAYS.map(d=>`
     <div class="dc">
       <span class="dl">${d}</span>
-      <input type="number" id="hrs-${id}-${d}" min="0" max="24" step="0.5"
+      <input type="number" id="hrs-${id}-${d}" min="0" max="24" step="0.25"
         oninput="recalc();checkSplit(${id});scheduleSave()"
         style="width:40px;border:0.5px solid #dde3ec;border-radius:4px;padding:4px 2px;text-align:center;font-size:12px;background:#fff;color:#1e2d40">
     </div>`).join('');
@@ -236,7 +238,7 @@ function buDayInputs(id) {
   return DAYS.map(d=>`
     <div class="bdc" id="bdc-${id}-${d}">
       <span class="dl">${d}</span>
-      <input type="number" id="hrs-${id}-${d}" min="0" max="24" step="0.5"
+      <input type="number" id="hrs-${id}-${d}" min="0" max="24" step="0.25"
         oninput="recalc();scheduleSave()"
         style="width:40px;border:0.5px solid #dde3ec;border-radius:4px;padding:4px 2px;text-align:center;font-size:12px;background:#fff;color:#1e2d40">
       <label class="ahcb" onclick="onAH(${id},'${d}')">
@@ -272,7 +274,7 @@ function addRow(type) {
             <label>Code 1 <span class="req-star">*required</span></label>
             ${liDropdown(id, 1, FIELD_LI, 'eq')}
             <div class="lihrs">
-              <input type="number" id="li-hrs-${id}-1" min="0" step="0.5" placeholder="hrs" disabled oninput="checkSplit(${id})" style="width:48px;border:0.5px solid #dde3ec;border-radius:4px;padding:3px 4px;font-size:12px;text-align:center;background:#f8f9fb;color:#c0cad8">
+              <input type="number" id="li-hrs-${id}-1" min="0" step="0.25" placeholder="hrs" disabled oninput="checkSplit(${id})" style="width:48px;border:0.5px solid #dde3ec;border-radius:4px;padding:3px 4px;font-size:12px;text-align:center;background:#f8f9fb;color:#c0cad8">
               <span>hrs on this code</span>
             </div>
             <div class="split-warn" id="sw-${id}"></div>
@@ -303,6 +305,7 @@ function onJobChange(id) {
   const val = sel?.value||'';
   const isNew = val==='__NEW__', isOffice = val==='__OFFICE__';
   const nb = NON_BILLABLE.includes(val);
+  const noLI = NO_LI_REQUIRED.includes(val); // only Lack of Work hides L&I
   const hasJob = !!val && val !== '__NEW__' || (isNew && (document.getElementById(`new-job-name-${id}`)?.value||'').trim());
   const nja = document.getElementById(`nja-${id}`);
   const grid = document.getElementById(`dgrid-${id}`);
@@ -311,9 +314,10 @@ function onJobChange(id) {
   if (nja) nja.style.display = isNew ? 'block' : 'none';
   if (grid) { grid.style.opacity = (val&&!isNew)||hasJob ? '1':'0.4'; grid.style.pointerEvents = (val&&!isNew)||hasJob ? '':'none'; }
   if (li) {
-    li.style.display = (!val||nb||isNew&&!hasJob) ? 'none' : '';
+    // Show L&I for everything except Lack of Work and unselected/new-without-name
+    li.style.display = (!val||noLI||(isNew&&!hasJob)) ? 'none' : '';
     if (isOffice) updateLIForOffice(id);
-    else if (!nb) resetLIForField(id);
+    else resetLIForField(id);
   }
   const card = document.getElementById(`card-${id}`);
   if (card) { card.className = 'jcard'+(isOffice?' office':isNew?' newjob':''); }
@@ -401,7 +405,7 @@ function addCode2(id) {
       ${allOpts}
     </select>
     <div class="lihrs">
-      <input type="number" id="li-hrs-${id}-2" min="0" step="0.5" placeholder="hrs" oninput="checkSplit(${id})" style="width:48px;border:0.5px solid #dde3ec;border-radius:4px;padding:3px 4px;font-size:12px;text-align:center;background:#fff">
+      <input type="number" id="li-hrs-${id}-2" min="0" step="0.25" placeholder="hrs" oninput="checkSplit(${id})" style="width:48px;border:0.5px solid #dde3ec;border-radius:4px;padding:3px 4px;font-size:12px;text-align:center;background:#fff">
       <span>hrs on this code</span>
     </div>`;
   wrap.insertBefore(blk, addBtn);
@@ -524,9 +528,10 @@ function recalc() {
       else if (buli) buli.textContent = 'L&I 0521 — Board-Up (auto-assigned)';
     }
 
-    // Card state
+    // Card state — Shop is non-billable but still needs L&I
+    const noLIRow = NO_LI_REQUIRED.includes(job);
     if (!hasJob && rowTot>0) { missingJob++; card.className='jcard err'; if(jobEl)jobEl.style.borderColor='#fca5a5'; }
-    else if (hasJob&&rowTot>0&&!nb&&!isBU) {
+    else if (hasJob&&rowTot>0&&!noLIRow&&!isBU) {
       filled++;
       const liSel = document.getElementById(`li-sel-${id}-1`);
       if (!liSel?.value) { missingLI++; card.className=`jcard${isOffice?' office':isNew?' newjob':''} needs-li`; }
@@ -537,7 +542,7 @@ function recalc() {
       const h2=h2El?parseFloat(h2El.value)||0:0;
       const ent=h1+(h2El?h2:0);
       if(ent>0&&Math.abs(ent-rowTot)>0.01) splitErr++;
-    } else if (hasJob&&rowTot>0&&(nb||isBU)) {
+    } else if (hasJob&&rowTot>0&&(noLIRow||isBU)) {
       filled++; card.className=`jcard${isBU?' valid':''}`;
       if(jobEl)jobEl.style.borderColor='';
     } else { card.className=`jcard${isOffice?' office':isNew?' newjob':''}`; if(jobEl)jobEl.style.borderColor=''; }
