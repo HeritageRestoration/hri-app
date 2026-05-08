@@ -428,7 +428,7 @@ function checkSplit(id) {
   if (!warn) return;
   const entered = h1+(h2El?h2:0);
   if (rt>0 && entered>0 && Math.abs(entered-rt)>0.01) {
-    warn.textContent = `L&I hrs (${entered.toFixed(1)}) must equal row total (${rt.toFixed(1)})`;
+    warn.textContent = `L&I hrs (${entered.toFixed(2)}) must equal row total (${rt.toFixed(2)})`;
     warn.style.display = 'block';
   } else { warn.style.display = 'none'; }
 }
@@ -482,11 +482,11 @@ function recalc() {
   if (chips) {
     const hasLeave = vacTot>0||sickTot>0||holTot>0||kosTot>0||lowTot>0;
     chips.innerHTML = hasLeave ? [
-      vacTot>0?`<span class="lchip vac">Vacation: ${vacTot.toFixed(1)} hrs</span>`:'',
-      sickTot>0?`<span class="lchip sick">Sick: ${sickTot.toFixed(1)} hrs</span>`:'',
-      holTot>0?`<span class="lchip hol">Holiday: ${holTot.toFixed(1)} hrs</span>`:'',
-      kosTot>0?`<span class="lchip kos">KOS: ${kosTot.toFixed(1)} hrs</span>`:'',
-      lowTot>0?`<span class="lchip low">Lack of Work: ${lowTot.toFixed(1)} hrs — unpaid, not in total</span>`:''
+      vacTot>0?`<span class="lchip vac">Vacation: ${vacTot.toFixed(2)} hrs</span>`:'',
+      sickTot>0?`<span class="lchip sick">Sick: ${sickTot.toFixed(2)} hrs</span>`:'',
+      holTot>0?`<span class="lchip hol">Holiday: ${holTot.toFixed(2)} hrs</span>`:'',
+      kosTot>0?`<span class="lchip kos">KOS: ${kosTot.toFixed(2)} hrs</span>`:'',
+      lowTot>0?`<span class="lchip low">Lack of Work: ${lowTot.toFixed(2)} hrs — unpaid, not in total</span>`:''
     ].join('') : '<span class="lchip-none">No leave hours this week</span>';
   }
 
@@ -518,7 +518,7 @@ function recalc() {
     else if (!nb) regHrs+=rowTot;
 
     const rt = document.getElementById(`rt-${id}`);
-    if (rt) { rt.textContent = rowTot>0?rowTot.toFixed(1):'—'; rt.className='rtpill'+(rowTot>8?' ot':rowTot===0?' z':''); }
+    if (rt) { rt.textContent = rowTot>0?rowTot.toFixed(2):'—'; rt.className='rtpill'+(rowTot>8?' ot':rowTot===0?' z':''); }
 
     if (isBU) {
       const ahsum = document.getElementById(`ahsum-${id}`);
@@ -554,15 +554,15 @@ function recalc() {
     const totalHrs = regHrs+buHrs+leaveHrs+offHrs;
     const chipHtml = DAYS.map(d => {
       const v = dayTots[d];
-      return `<div class="wchip${v>8?' ot':''}"><div class="n">${v>0?v.toFixed(1):'0'}</div><div class="d">${d}</div></div>`;
+      return `<div class="wchip${v>8?' ot':''}"><div class="n">${v>0?v.toFixed(2):'0'}</div><div class="d">${d}</div></div>`;
     }).join('');
     const lsc = [
-      vacTot>0?`<span class="lsc vac">VAC ${vacTot.toFixed(1)}</span>`:'',
-      sickTot>0?`<span class="lsc sick">SICK ${sickTot.toFixed(1)}</span>`:'',
-      holTot>0?`<span class="lsc hol">HOL ${holTot.toFixed(1)}</span>`:''
+      vacTot>0?`<span class="lsc vac">VAC ${vacTot.toFixed(2)}</span>`:'',
+      sickTot>0?`<span class="lsc sick">SICK ${sickTot.toFixed(2)}</span>`:'',
+      holTot>0?`<span class="lsc hol">HOL ${holTot.toFixed(2)}</span>`:''
     ].join('');
     tb.innerHTML = `<span class="wtlbl">Week totals:</span>${chipHtml}
-      <div class="wchip grand${totalHrs>40?' ot':''}"><div class="n bl">${totalHrs>0?totalHrs.toFixed(1):'0'}</div><div class="d">Total</div></div>
+      <div class="wchip grand${totalHrs>40?' ot':''}"><div class="n bl">${totalHrs>0?totalHrs.toFixed(2):'0'}</div><div class="d">Total</div></div>
       ${lsc?`<div class="leavesumchips">${lsc}</div>`:''}`;
   }
 
@@ -585,7 +585,7 @@ function recalc() {
   else if (missingLI>0) { msg=`${missingLI} row${missingLI>1?'s':''} still need an L&I code`; valid=false; level='warn'; }
   else if (splitErr>0) { msg=`${splitErr} row${splitErr>1?'s':''} — L&I hours don't add up to row total`; valid=false; level='warn'; }
   else if (filled===0&&leaveHrs===0) { msg='Add at least one location row with hours or leave time'; valid=false; level='err'; }
-  else { msg=`Ready to submit — ${filled} row${filled!==1?'s':''}, ${(regHrs+buHrs+leaveHrs+offHrs).toFixed(1)} total hrs`; }
+  else { msg=`Ready to submit — ${filled} row${filled!==1?'s':''}, ${(regHrs+buHrs+leaveHrs+offHrs).toFixed(2)} total hrs`; }
 
   const vb=document.getElementById('valBar');
   const vd=document.getElementById('vdot');
@@ -706,15 +706,15 @@ function showMismatch(flags) {
   let html='';
   if (groups.unassigned.length) {
     html+=`<div class="issue-grp"><div class="ig-title red"><div class="igdot red"></div>Not assigned to you in the Job Board</div>
-    ${groups.unassigned.map(f=>`<div class="irow red"><div class="iicon red">!</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(1)} hrs</div></div>`).join('')}</div>`;
+    ${groups.unassigned.map(f=>`<div class="irow red"><div class="iicon red">!</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(2)} hrs</div></div>`).join('')}</div>`;
   }
   if (groups.closed.length) {
     html+=`<div class="issue-grp"><div class="ig-title amber"><div class="igdot amber"></div>Job is marked complete in the Job Board</div>
-    ${groups.closed.map(f=>`<div class="irow amber"><div class="iicon amber">!</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(1)} hrs</div></div>`).join('')}</div>`;
+    ${groups.closed.map(f=>`<div class="irow amber"><div class="iicon amber">!</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(2)} hrs</div></div>`).join('')}</div>`;
   }
   if (groups.unmatched.length) {
     html+=`<div class="issue-grp"><div class="ig-title gray"><div class="igdot gray"></div>Job not found in Job Board</div>
-    ${groups.unmatched.map(f=>`<div class="irow gray"><div class="iicon gray">?</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(1)} hrs</div></div>`).join('')}</div>`;
+    ${groups.unmatched.map(f=>`<div class="irow gray"><div class="iicon gray">?</div><div style="flex:1"><div class="ijob">${f.job_name}</div><div class="idesc">${f.description}</div></div><div class="ihrs">${parseFloat(f.hours).toFixed(2)} hrs</div></div>`).join('')}</div>`;
   }
   if (body) body.innerHTML = html;
   document.getElementById('btnConfirm').onclick = () => doFinalSubmit(pendingFlags);

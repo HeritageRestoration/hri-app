@@ -96,7 +96,7 @@ tbody tr.fl-nj td{background:#faf5ff}
   const codes    = [...new Set(rows.filter(r=>r.li_code).map(r=>r.li_code))].length;
   %>
   <div class="stat-grid">
-    <div class="stat"><div class="n"><%= totalHrs.toFixed(1) %></div><div class="l">Total hours</div></div>
+    <div class="stat"><div class="n"><%= totalHrs.toFixed(2) %></div><div class="l">Total hours</div></div>
     <div class="stat"><div class="n"><%= emps %></div><div class="l">Employees</div></div>
     <div class="stat"><div class="n <%= flagged>0?'warn':'' %>"><%= flagged %></div><div class="l">Flagged rows</div></div>
     <div class="stat"><div class="n"><%= codes %></div><div class="l">L&I codes used</div></div>
@@ -152,7 +152,7 @@ tbody tr.fl-nj td{background:#faf5ff}
     </table>
     </div>
     <div class="summary-bar">
-      <div class="qs"><div class="n"><%= totalHrs.toFixed(1) %></div><div class="l">Total hours</div></div>
+      <div class="qs"><div class="n"><%= totalHrs.toFixed(2) %></div><div class="l">Total hours</div></div>
       <div class="qs"><div class="n"><%= emps %></div><div class="l">Employees</div></div>
       <div class="qs"><div class="n <%= flagged>0?'warn':'' %>"><%= flagged %></div><div class="l">Flagged rows</div></div>
       <div class="qs"><div class="n"><%= codes %></div><div class="l">L&I codes</div></div>
