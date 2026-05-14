@@ -608,6 +608,12 @@ function scheduleSave() {
 async function doSave() {
   const payload = buildPayload('draft');
   if (!payload.employee_name || !payload.week_start) return;
+  
+  // Don't save if the form is completely empty — no rows with hours and no leave
+  const hasAnyHours = (payload.rows||[]).some(r => parseFloat(r.total_hrs) > 0) ||
+                      (payload.leave||[]).some(l => parseFloat(l.hours) > 0);
+  if (!hasAnyHours && !currentTcId) return; // never create a blank new record
+  
   try {
     const r = await fetch('/timecard/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     const j = await r.json();
@@ -739,7 +745,7 @@ async function doFinalSubmit(flags) {
 }
 
 // ── Load draft ────────────────────────────────────────────────────────────────
-function onNameChange() { tryLoadDraft(); scheduleSave(); recalc(); }
+function onNameChange() { tryLoadDraft(); recalc(); } // removed scheduleSave() — draft load handles saving
 function onWeekChange() {
   const s = document.getElementById('wkStart')?.value;
   if (s) {
@@ -756,25 +762,41 @@ async function tryLoadDraft() {
   try {
     const r = await fetch(`/timecard/draft?name=${encodeURIComponent(name)}&week=${encodeURIComponent(week)}`);
     const draft = await r.json();
-    if (draft) loadDraft(draft);
-  } catch(e) {}
+    if (draft) {
+      loadDraft(draft);
+    } else {
+      // No existing draft — clear form and set a new currentTcId of null
+      // so the first save creates a new record rather than overwriting anyone else's
+      currentTcId = null;
+      document.getElementById('regRows').innerHTML='';
+      document.getElementById('buRows').innerHTML='';
+      addRow('reg'); addRow('reg');
+      recalc();
+    }
+  } catch(e) { console.error('Draft load error:', e); }
 }
 
 function loadDraft(draft) {
   currentTcId = draft.id;
   if (draft.notes) document.getElementById('tcNotes').value = draft.notes;
   if (draft.employee_email) document.getElementById('empEmail').value = draft.employee_email;
-  // Load leave
+
+  // Load leave — use parseFloat to handle "0.00" strings from DB
   (draft.leave||[]).forEach(lv => {
     const hEl = document.getElementById(`lv-hrs-${lv.day_name}`);
     const tEl = document.getElementById(`lv-type-${lv.day_name}`);
-    if (hEl) hEl.value = lv.hours;
-    if (tEl) { tEl.value = lv.leave_type||''; tEl.className = (lv.leave_type||'').toLowerCase(); }
+    const hrs = parseFloat(lv.hours)||0;
+    if (hEl) hEl.value = hrs > 0 ? hrs : '';
+    if (tEl && hrs > 0) {
+      tEl.value = lv.leave_type||'';
+      tEl.className = (lv.leave_type||'').toLowerCase();
+    }
   });
-  // Clear existing rows
+
+  // Clear existing rows before loading
   document.getElementById('regRows').innerHTML='';
   document.getElementById('buRows').innerHTML='';
-  // Load rows
+
   const DAYS_LC=['sun','mon','tue','wed','thu','fri','sat'];
   ;(draft.rows||[]).forEach(row => {
     const type = row.section==='boardup'?'bu':'reg';
@@ -784,7 +806,11 @@ function loadDraft(draft) {
       const jobSel = document.getElementById(`job-${id}`);
       if (jobSel) {
         if (row.is_office) jobSel.value='__OFFICE__';
-        else if (row.is_new_job) { jobSel.value='__NEW__'; const ni=document.getElementById(`new-job-name-${id}`); if(ni){ni.closest('.new-job-area').style.display='block'; ni.value=row.job_name||'';} }
+        else if (row.is_new_job) {
+          jobSel.value='__NEW__';
+          const ni=document.getElementById(`new-job-name-${id}`);
+          if(ni){ni.closest('.new-job-area').style.display='block'; ni.value=row.job_name||'';}
+        }
         else if (row.is_nonbill) jobSel.value=row.job_name;
         else jobSel.value=row.job_name||'';
         onJobChange(id);
@@ -793,19 +819,28 @@ function loadDraft(draft) {
       const inp=document.getElementById(`job-${id}`);
       if(inp){inp.value=row.job_name||''; onBUInput(id);}
     }
-    DAYS_LC.forEach((d,i)=>{ const el=document.getElementById(`hrs-${id}-${DAYS[i]}`); if(el&&row[d]) el.value=row[d]; });
+
+    // Load day hours — always set, use parseFloat to handle DB strings
+    DAYS_LC.forEach((d,i)=>{
+      const el=document.getElementById(`hrs-${id}-${DAYS[i]}`);
+      if(el) {
+        const v = parseFloat(row[d])||0;
+        el.value = v > 0 ? v : '';
+      }
+    });
+
     if (row.li_code_1) {
       const s1=document.getElementById(`li-sel-${id}-1`);
       if(s1){s1.value=row.li_code_1; onLIChange(id);}
       const h1=document.getElementById(`li-hrs-${id}-1`);
-      if(h1){h1.value=row.li_hrs_1||'';}
+      if(h1){const v=parseFloat(row.li_hrs_1)||0; h1.value=v>0?v:'';}
     }
     if (row.li_code_2) {
       addCode2(id);
       const s2=document.getElementById(`li-sel-${id}-2`);
       if(s2)s2.value=row.li_code_2;
       const h2=document.getElementById(`li-hrs-${id}-2`);
-      if(h2)h2.value=row.li_hrs_2||'';
+      if(h2){const v=parseFloat(row.li_hrs_2)||0; h2.value=v>0?v:'';}
     }
     if (row.section==='boardup') {
       try {
@@ -814,7 +849,7 @@ function loadDraft(draft) {
       } catch(e){}
     }
   });
-  // On-call
+
   ;(draft.oncall_days||[]).forEach(d=>{const cb=document.getElementById(`oc-${d}`);if(cb)cb.checked=true;});
   const now = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   document.getElementById('savedMsg').textContent=`Draft loaded · saved ${now}`;

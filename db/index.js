@@ -364,9 +364,13 @@ async function getTimecardDetail(id) {
 }
 
 async function getDraftForEmployee(name, weekStart) {
+  // Match by exact employee_name OR by nickname (handles both "Todd" and "Todd Custer")
   const r = await pool.query(
-    `SELECT id FROM timecards WHERE employee_name=$1 AND week_start=$2 AND status='draft' LIMIT 1`,
-    [name, weekStart]
+    `SELECT id FROM timecards 
+     WHERE (employee_name=$1 OR employee_name LIKE $2)
+     AND week_start=$3 AND status='draft' 
+     ORDER BY updated_at DESC LIMIT 1`,
+    [name, `${name} %`, weekStart]
   );
   if (!r.rows[0]) return null;
   return getTimecardDetail(r.rows[0].id);
