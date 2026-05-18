@@ -427,7 +427,7 @@ async function getPeople(role) {
 // Get people who should receive Friday/Monday reminders (crew + estimators)
 async function getCrewForReminders() {
   const r = await pool.query(
-    "SELECT * FROM people WHERE role IN ('crew','estimator') AND active=TRUE ORDER BY name"
+    "SELECT * FROM people WHERE role IN ('crew','estimator','bookkeeper') AND active=TRUE ORDER BY name"
   );
   return r.rows;
 }

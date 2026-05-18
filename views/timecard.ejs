@@ -225,7 +225,8 @@ function liDropdown(id, slot, codes, cls) {
 }
 
 function dayInputs(id) {
-  return DAYS.map(d=>`
+  return `<div class="week-hint">Enter hours for <strong>each day</strong> you worked this job — all in this one row</div>` +
+  DAYS.map(d=>`
     <div class="dc">
       <span class="dl">${d}</span>
       <input type="number" id="hrs-${id}-${d}" min="0" max="24" step="0.25"
@@ -258,6 +259,10 @@ function addRow(type) {
       <div class="jtop" id="jtop-${id}">
         ${jobDropdown(id)}
         <button class="rm" onclick="removeRow(${id})">×</button>
+      </div>
+      <div class="dup-warn" id="dup-warn-${id}" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>This job already has a row — enter all days for this job in <strong>one row</strong>, not a separate row per day. The existing row is highlighted above.</span>
       </div>
       <div class="new-job-area" id="nja-${id}" style="display:none">
         <input type="text" id="new-job-name-${id}" placeholder="Customer name & address (e.g. Martinez, Carlos — 412 Pine St Lacey)" oninput="onNewJobName(${id})">
@@ -305,16 +310,35 @@ function onJobChange(id) {
   const val = sel?.value||'';
   const isNew = val==='__NEW__', isOffice = val==='__OFFICE__';
   const nb = NON_BILLABLE.includes(val);
-  const noLI = NO_LI_REQUIRED.includes(val); // only Lack of Work hides L&I
+  const noLI = NO_LI_REQUIRED.includes(val);
   const hasJob = !!val && val !== '__NEW__' || (isNew && (document.getElementById(`new-job-name-${id}`)?.value||'').trim());
   const nja = document.getElementById(`nja-${id}`);
   const grid = document.getElementById(`dgrid-${id}`);
   const li = document.getElementById(`li-${id}`);
 
+  // ── Duplicate job detection ───────────────────────────────────────────────
+  if (val && val !== '__NEW__' && val !== '__OFFICE__' && !NON_BILLABLE.includes(val)) {
+    const dupWarn = document.getElementById(`dup-warn-${id}`);
+    const duplicate = [...document.querySelectorAll('#regRows .jcard')].find(card => {
+      const otherId = card.id.replace('card-','');
+      if (otherId === String(id)) return false;
+      const otherSel = document.getElementById(`job-${otherId}`);
+      return otherSel && otherSel.value === val;
+    });
+    if (duplicate) {
+      // Show warning and highlight the existing row
+      if (dupWarn) { dupWarn.style.display='flex'; }
+      duplicate.style.outline = '2px solid #f59e0b';
+      duplicate.style.borderRadius = '8px';
+      setTimeout(() => { duplicate.style.outline=''; }, 3000);
+    } else {
+      if (dupWarn) dupWarn.style.display='none';
+    }
+  }
+
   if (nja) nja.style.display = isNew ? 'block' : 'none';
   if (grid) { grid.style.opacity = (val&&!isNew)||hasJob ? '1':'0.4'; grid.style.pointerEvents = (val&&!isNew)||hasJob ? '':'none'; }
   if (li) {
-    // Show L&I for everything except Lack of Work and unselected/new-without-name
     li.style.display = (!val||noLI||(isNew&&!hasJob)) ? 'none' : '';
     if (isOffice) updateLIForOffice(id);
     else resetLIForField(id);

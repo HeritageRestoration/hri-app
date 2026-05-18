@@ -75,7 +75,7 @@ tbody tr.fl-nj td{background:#faf5ff}
           <option value="">— select week —</option>
           <% weeks.forEach(function(w){ const ws=w.week_start.toISOString().split('T')[0]; %>
             <option value="<%= ws %>" <%=selectedWeek===ws?'selected':''%>>
-              Week of <%= new Date(ws+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %>
+              Week of <%= new Date(ws.length===10 ? ws+'T12:00:00' : ws).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %>
             </option>
           <% }) %>
         </select>
@@ -105,7 +105,7 @@ tbody tr.fl-nj td{background:#faf5ff}
 
   <div class="card">
     <div class="card-hdr">
-      <div><h3>Weekly timecard export</h3><div class="meta">Week of <%= new Date(selectedWeek+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %> · <%= rows.length %> rows</div></div>
+      <div><h3>Weekly timecard export</h3><div class="meta">Week of <%= new Date(selectedWeek.length===10 ? selectedWeek+'T12:00:00' : selectedWeek).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %> · <%= rows.length %> rows</div></div>
     </div>
     <div class="legend">
       <div class="leg-item"><div class="leg-sw" style="background:#6ee7b7;border:0.5px solid #34d399"></div>Clean</div>

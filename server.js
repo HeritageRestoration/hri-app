@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
 app.get('/timecard', async (req, res) => {
   try {
     const people  = await db.getPeople();
-    const crew    = people.filter(p => ['crew','manager','estimator'].includes(p.role));
+    const crew    = people.filter(p => ['crew','manager','estimator','bookkeeper'].includes(p.role));
     const boardData = await db.loadBoardData();
     const jobs    = boardData.jobs || [];
     res.render('timecard', { crew, jobs, error: null });
@@ -98,20 +98,34 @@ app.post('/timecard/check', async (req, res) => {
         flags.push({ flag_type: 'closed', job_name: row.job_name, hours: row.total_hrs,
           description: 'Job is marked complete in the Job Board' });
       }
-      // Assignment check (crew names in board cells for that job)
+      // Assignment check — use name-based keys (matches our cell storage format)
       const empName = req.body.employee_name || '';
-      const jobIdx  = jobs.indexOf(match);
       const allDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Sat/Sun'];
-      let assigned  = false;
-      for (const day of allDays) {
-        const key = `${jobIdx}_${day}`;
-        const cell = boardData.cells && boardData.cells[key];
-        if (cell && cell.names && cell.names.some(n =>
-          empName.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(empName.split(' ')[0].toLowerCase())
-        )) { assigned = true; break; }
+      let assigned = false;
+
+      // Check both the weeks structure and legacy flat cells
+      const allWeekCells = [];
+      if (boardData.weeks) {
+        Object.values(boardData.weeks).forEach(wk => {
+          if (wk.cells) allWeekCells.push(wk.cells);
+        });
       }
+      if (boardData.cells) allWeekCells.push(boardData.cells);
+
+      for (const day of allDays) {
+        // Name-based key: "JobName_Day"
+        const nameKey = `${match.name}_${day}`;
+        for (const cells of allWeekCells) {
+          const cell = cells[nameKey];
+          if (cell && cell.names && cell.names.some(n =>
+            empName.toLowerCase().includes(n.toLowerCase()) ||
+            n.toLowerCase().includes(empName.split(' ')[0].toLowerCase())
+          )) { assigned = true; break; }
+        }
+        if (assigned) break;
+      }
+
       if (!assigned && match && parseInt(match.comp||0) < 100) {
-        // Only flag unassigned if not already flagged as unmatched/closed
         if (!flags.find(f => f.job_name === row.job_name)) {
           flags.push({ flag_type: 'unassigned', job_name: row.job_name, hours: row.total_hrs,
             description: 'This job is not assigned to you in the Job Board' });
@@ -138,7 +152,7 @@ app.post('/timecard/submit', async (req, res) => {
     const toEmails = [...mgEmails, ...bkEmails];
     if (toEmails.length) {
       sendMail(toEmails, `Time Card: ${tc.employee_name} — Week of ${fmtDateShort(tc.week_start)}`,
-        emailSubmitted(tc, appUrl())).catch(e => console.error('Email error:', e.message));
+        emailSubmitted(tc, appUrl())).catch(e => console.error('Email error:', e.message, e.stack?.split('\n')[1]||''));
     }
     res.json({ ok: true, id: tcId });
   } catch (e) {
@@ -191,6 +205,19 @@ app.get('/admin/timecard/:id', requireAdmin, async (req, res) => {
     if (!tc) return res.status(404).send('Not found');
     res.render('admin-detail', { tc, pw: ADMIN_PW });
   } catch (e) { res.status(500).send('Error'); }
+});
+
+app.post('/admin/timecard/:id/delete', requireAdmin, async (req, res) => {
+  try {
+    // Only allow deleting drafts — not submitted timecards
+    const { rows } = await db.pool.query(
+      'SELECT status FROM timecards WHERE id=$1', [req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Not found' });
+    if (rows[0].status !== 'draft') return res.status(400).json({ ok: false, error: 'Can only delete drafts' });
+    await db.pool.query('DELETE FROM timecards WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 // ── TWEAK 4: Employee management ──────────────────────────────────────────────
@@ -427,7 +454,11 @@ wss.on('connection', ws => {
 
 function fmtDateShort(d) {
   if (!d) return '—';
-  return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  try {
+    const date = d instanceof Date ? d : new Date(typeof d === 'string' && d.length === 10 ? d + 'T12:00:00' : d);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch(e) { return '—'; }
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────

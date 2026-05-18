@@ -46,7 +46,7 @@ const total=parseFloat(tc.total_combined)||0;
 %>
 <div class="info-grid">
   <div class="ib"><div class="l">Employee</div><div class="v" style="font-size:13px"><%=tc.employee_name%></div></div>
-  <div class="ib"><div class="l">Week</div><div class="v" style="font-size:12px"><%=new Date(tc.week_start+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})%> – <%=new Date(tc.week_end+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})%></div></div>
+  <div class="ib"><div class="l">Week</div><div class="v" style="font-size:12px"><%=new Date(tc.week_start instanceof Date ? tc.week_start : (String(tc.week_start).length===10 ? tc.week_start+'T12:00:00' : tc.week_start)).toLocaleDateString('en-US',{month:'short',day:'numeric'})%> – <%=new Date(tc.week_end instanceof Date ? tc.week_end : (String(tc.week_end).length===10 ? tc.week_end+'T12:00:00' : tc.week_end)).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})%></div></div>
   <div class="ib"><div class="l">Total hrs</div><div class="v <%=total>40?'ot':''%>"><%=total.toFixed(2)%><%=total>40?' ⚠':''%></div></div>
   <div class="ib"><div class="l">Regular</div><div class="v"><%=fh(tc.total_reg_hrs)%></div></div>
   <div class="ib"><div class="l">Board-Up</div><div class="v"><%=fh(tc.total_bu_hrs)%></div></div>
