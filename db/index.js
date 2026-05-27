@@ -318,9 +318,10 @@ async function upsertTimecard(data) {
     const paidLeave = (data.leave||[]).filter(l=>l.leave_type!=='Lack of Work').reduce((s,l)=>s+(parseFloat(l.hours)||0), 0);
     const kosHrs    = (data.leave||[]).filter(l=>l.leave_type==='KOS').reduce((s,l)=>s+(parseFloat(l.hours)||0), 0);
     const regHrs    = (data.rows||[]).filter(r=>r.section==='regular'&&!r.is_office&&!r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0);
+    const nonBillHrs= (data.rows||[]).filter(r=>r.is_nonbill&&r.job_name!=='Lack of Work').reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0); // Shop counts toward total
     const buHrs     = (data.rows||[]).filter(r=>r.section==='boardup').reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0);
     const offHrs    = (data.rows||[]).filter(r=>r.is_office).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0);
-    const combined  = regHrs + buHrs + paidLeave + offHrs;
+    const combined  = regHrs + nonBillHrs + buHrs + paidLeave + offHrs;
     await client.query(
       `UPDATE timecards SET total_reg_hrs=$1, total_bu_hrs=$2, total_leave_hrs=$3,
          total_office_hrs=$4, total_kos_hrs=$5, total_combined=$6, updated_at=NOW() WHERE id=$7`,

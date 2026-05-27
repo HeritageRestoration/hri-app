@@ -471,7 +471,7 @@ function removeRow(id) { document.getElementById(`card-${id}`)?.remove(); recalc
 // ── Recalc ────────────────────────────────────────────────────────────────────
 function recalc() {
   const dayTots = {Sun:0,Mon:0,Tue:0,Wed:0,Thu:0,Fri:0,Sat:0};
-  let regHrs=0, buHrs=0, leaveHrs=0, offHrs=0;
+  let regHrs=0, buHrs=0, leaveHrs=0, offHrs=0, nonBillHrs=0;
   let missingJob=0, missingLI=0, splitErr=0, filled=0;
 
   // Leave — Lack of Work excluded from totals (TWEAK 1+2)
@@ -539,7 +539,8 @@ function recalc() {
 
     if (isOffice) offHrs+=rowTot;
     else if (isBU) buHrs+=rowTot;
-    else if (!nb) regHrs+=rowTot;
+    else if (nb) nonBillHrs+=rowTot; // Shop counts toward total
+    else regHrs+=rowTot;
 
     const rt = document.getElementById(`rt-${id}`);
     if (rt) { rt.textContent = rowTot>0?rowTot.toFixed(2):'—'; rt.className='rtpill'+(rowTot>8?' ot':rowTot===0?' z':''); }
@@ -575,7 +576,7 @@ function recalc() {
   // Totals bar
   const tb = document.getElementById('totalsBar');
   if (tb) {
-    const totalHrs = regHrs+buHrs+leaveHrs+offHrs;
+    const totalHrs = regHrs+nonBillHrs+buHrs+leaveHrs+offHrs;
     const chipHtml = DAYS.map(d => {
       const v = dayTots[d];
       return `<div class="wchip${v>8?' ot':''}"><div class="n">${v>0?v.toFixed(2):'0'}</div><div class="d">${d}</div></div>`;
@@ -609,7 +610,7 @@ function recalc() {
   else if (missingLI>0) { msg=`${missingLI} row${missingLI>1?'s':''} still need an L&I code`; valid=false; level='warn'; }
   else if (splitErr>0) { msg=`${splitErr} row${splitErr>1?'s':''} — L&I hours don't add up to row total`; valid=false; level='warn'; }
   else if (filled===0&&leaveHrs===0) { msg='Add at least one location row with hours or leave time'; valid=false; level='err'; }
-  else { msg=`Ready to submit — ${filled} row${filled!==1?'s':''}, ${(regHrs+buHrs+leaveHrs+offHrs).toFixed(2)} total hrs`; }
+  else { msg=`Ready to submit — ${filled} row${filled!==1?'s':''}, ${(regHrs+nonBillHrs+buHrs+leaveHrs+offHrs).toFixed(2)} total hrs`; }
 
   const vb=document.getElementById('valBar');
   const vd=document.getElementById('vdot');
