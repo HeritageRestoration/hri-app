@@ -68,6 +68,9 @@ tbody tr.newj td{background:#faf5ff}
   <a href="/timecard" class="nav-link">Time Card</a>
   <a href="/admin?pw=<%= pw %>" class="nav-link active">Admin</a>
   <div class="nav-spacer"></div>
+  <% if(typeof selectedWeek !== 'undefined' && selectedWeek) { %>
+  <a href="/admin/print-all?pw=<%= pw %>&week=<%= selectedWeek %>" target="_blank" class="btn-primary" style="font-size:11px;padding:6px 12px;background:rgba(255,255,255,.15);border:0.5px solid rgba(255,255,255,.3);margin-right:6px">🖨 Print All</a>
+  <% } %>
   <a href="/admin/export?pw=<%= pw %>&week=<%= selectedWeek||'' %>" class="btn-primary" style="font-size:11px;padding:6px 12px">QB Export →</a>
 </nav>
 

@@ -193,7 +193,18 @@ app.get('/admin', requireAdmin, async (req, res) => {
   }
 });
 
-app.get('/admin/login', (req, res) => res.render('admin-login', { error: null }));
+// Batch print all submitted timecards for a week
+app.get('/admin/print-all', requireAdmin, async (req, res) => {
+  try {
+    const { week } = req.query;
+    if (!week) return res.status(400).send('week required');
+    const timecards = await db.getTimecardsByWeek(week);
+    const submitted = timecards.filter(t => t.status === 'submitted');
+    const details = await Promise.all(submitted.map(t => db.getTimecardDetail(t.id)));
+    details.sort((a,b) => a.employee_name.localeCompare(b.employee_name));
+    res.render('print-all', { timecards: details, week });
+  } catch(e) { console.error(e); res.status(500).send('Error'); }
+});
 app.post('/admin/login', (req, res) => {
   if (req.body.pw === ADMIN_PW) return res.redirect(`/admin?pw=${ADMIN_PW}`);
   res.render('admin-login', { error: 'Wrong password' });

@@ -44,14 +44,24 @@ const DAY_LBL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const fh=n=>(parseFloat(n)||0)>0?(parseFloat(n)).toFixed(2):'—';
 const total=parseFloat(tc.total_combined)||0;
 %>
+<%
+// Recalculate totals live from rows so old submitted cards show correctly
+const calcReg     = (tc.rows||[]).filter(r=>r.section==='regular'&&!r.is_office&&!r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+const calcNonBill = (tc.rows||[]).filter(r=>r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+const calcBU      = (tc.rows||[]).filter(r=>r.section==='boardup').reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+const calcOff     = (tc.rows||[]).filter(r=>r.is_office).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+const calcLeave   = (tc.leave||[]).filter(l=>l.leave_type!=='Lack of Work').reduce((s,l)=>s+(parseFloat(l.hours)||0),0);
+const calcTotal   = calcReg+calcNonBill+calcBU+calcOff+calcLeave;
+%>
 <div class="info-grid">
   <div class="ib"><div class="l">Employee</div><div class="v" style="font-size:13px"><%=tc.employee_name%></div></div>
   <div class="ib"><div class="l">Week</div><div class="v" style="font-size:12px"><%=new Date(tc.week_start instanceof Date ? tc.week_start : (String(tc.week_start).length===10 ? tc.week_start+'T12:00:00' : tc.week_start)).toLocaleDateString('en-US',{month:'short',day:'numeric'})%> – <%=new Date(tc.week_end instanceof Date ? tc.week_end : (String(tc.week_end).length===10 ? tc.week_end+'T12:00:00' : tc.week_end)).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})%></div></div>
-  <div class="ib"><div class="l">Total hrs</div><div class="v <%=total>40?'ot':''%>"><%=total.toFixed(2)%><%=total>40?' ⚠':''%></div></div>
-  <div class="ib"><div class="l">Regular</div><div class="v"><%=fh(tc.total_reg_hrs)%></div></div>
-  <div class="ib"><div class="l">Board-Up</div><div class="v"><%=fh(tc.total_bu_hrs)%></div></div>
-  <div class="ib"><div class="l">Office</div><div class="v"><%=fh(tc.total_office_hrs)%></div></div>
-  <div class="ib"><div class="l">Leave</div><div class="v"><%=fh(tc.total_leave_hrs)%></div></div>
+  <div class="ib"><div class="l">Total hrs</div><div class="v <%=calcTotal>40?'ot':''%>"><%=calcTotal.toFixed(2)%><%=calcTotal>40?' ⚠':''%></div></div>
+  <div class="ib"><div class="l">Regular</div><div class="v"><%=calcReg>0?calcReg.toFixed(2):'—'%></div></div>
+  <div class="ib"><div class="l">Shop</div><div class="v"><%=calcNonBill>0?calcNonBill.toFixed(2):'—'%></div></div>
+  <div class="ib"><div class="l">Board-Up</div><div class="v"><%=calcBU>0?calcBU.toFixed(2):'—'%></div></div>
+  <div class="ib"><div class="l">Office</div><div class="v"><%=calcOff>0?calcOff.toFixed(2):'—'%></div></div>
+  <div class="ib"><div class="l">Leave</div><div class="v"><%=calcLeave>0?calcLeave.toFixed(2):'—'%></div></div>
   <div class="ib"><div class="l">Status</div><div class="v" style="font-size:12px"><%=tc.status%></div></div>
 </div>
 

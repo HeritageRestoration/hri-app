@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Time Cards — Week of <%= new Date(week.length===10?week+'T12:00:00':week).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:11px;color:#1e2d40;background:#fff}
+.no-print{padding:12px 20px;background:#1a2e4a;color:#fff;display:flex;align-items:center;gap:12px}
+.no-print button{background:#2e6fad;color:#fff;border:none;border-radius:5px;padding:7px 16px;font-size:12px;cursor:pointer}
+.no-print span{font-size:13px;font-weight:600}
+.card{page-break-after:always;padding:20px;max-width:780px;margin:0 auto;border-bottom:2px solid #dde3ec}
+.card:last-child{page-break-after:auto;border-bottom:none}
+.card-hdr{background:#1a2e4a;color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-radius:4px}
+.card-hdr h2{font-size:13px;font-weight:600}
+.card-hdr .meta{font-size:11px;opacity:.7}
+.info-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px}
+.ib{border:0.5px solid #dde3ec;border-radius:4px;padding:5px 8px}
+.ib .l{font-size:9px;color:#8fa0b8;text-transform:uppercase;letter-spacing:.3px}
+.ib .v{font-size:13px;font-weight:600;color:#1a2e4a;margin-top:2px}
+.ib .v.ot{color:#991b1b}
+table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}
+thead th{background:#f8f9fb;padding:5px 8px;text-align:left;font-size:10px;font-weight:600;color:#4a5e78;border-bottom:0.5px solid #dde3ec}
+thead th.num{text-align:right}
+tbody td{padding:5px 8px;border-bottom:0.5px solid #f0f4f8;vertical-align:middle}
+tbody tr:last-child td{border:none}
+.td-num{text-align:right}
+.section-hdr{background:#1a2e4a;color:#fff;padding:5px 10px;font-size:11px;font-weight:600;margin-bottom:0;border-radius:3px 3px 0 0}
+.sig{border:0.5px solid #dde3ec;border-radius:4px;padding:10px 14px;font-size:11px;color:#8fa0b8;margin-top:10px;display:flex;gap:40px}
+.flag-row{background:#fffbf0;border-left:3px solid #d97706;padding:6px 10px;font-size:11px;color:#92400e;margin-bottom:8px;border-radius:0 4px 4px 0}
+.oncall{background:#faf5ff;border:0.5px solid #c4b5fd;border-radius:4px;padding:6px 10px;font-size:11px;color:#6d28d9;margin-bottom:8px}
+.notes{background:#fffbf0;border-left:3px solid #f0c040;padding:6px 10px;font-size:11px;color:#1e2d40;margin-bottom:8px}
+@media print{
+  .no-print{display:none!important}
+  .card{border:none;padding:15px}
+  @page{margin:12mm;size:letter}
+}
+</style></head><body>
+
+<div class="no-print">
+  <span>🖨 Print All Time Cards — <%= timecards.length %> submitted</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+  <button onclick="window.close()" style="background:rgba(255,255,255,.15)">Close</button>
+</div>
+
+<% 
+const DAYS=['sun','mon','tue','wed','thu','fri','sat'];
+const DAY_LBL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const fh=n=>(parseFloat(n)||0)>0?(parseFloat(n)).toFixed(2):'—';
+const fmtD=d=>{if(!d)return'—';try{const dt=d instanceof Date?d:new Date(typeof d==='string'&&d.length===10?d+'T12:00:00':d);return isNaN(dt)?'—':dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return'—';}};
+
+timecards.forEach(function(tc){
+  const calcReg     = (tc.rows||[]).filter(r=>r.section==='regular'&&!r.is_office&&!r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+  const calcNonBill = (tc.rows||[]).filter(r=>r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+  const calcBU      = (tc.rows||[]).filter(r=>r.section==='boardup').reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+  const calcOff     = (tc.rows||[]).filter(r=>r.is_office).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
+  const calcLeave   = (tc.leave||[]).filter(l=>l.leave_type!=='Lack of Work').reduce((s,l)=>s+(parseFloat(l.hours)||0),0);
+  const calcTotal   = calcReg+calcNonBill+calcBU+calcOff+calcLeave;
+  const leaveRows   = (tc.leave||[]).filter(l=>(parseFloat(l.hours)||0)>0);
+  const regRows     = (tc.rows||[]).filter(r=>r.section==='regular'&&(parseFloat(r.total_hrs)||0)>0);
+  const buRows      = (tc.rows||[]).filter(r=>r.section==='boardup'&&(parseFloat(r.total_hrs)||0)>0);
+%>
+<div class="card">
+  <div class="card-hdr">
+    <h2><%= tc.employee_name %></h2>
+    <span class="meta">Week of <%= fmtD(tc.week_start) %> — <%= fmtD(tc.week_end) %> &nbsp;|&nbsp; Submitted <%= tc.submitted_at ? new Date(tc.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '—' %></span>
+  </div>
+
+  <div class="info-grid">
+    <div class="ib"><div class="l">Total hrs</div><div class="v <%=calcTotal>40?'ot':''%>"><%=calcTotal.toFixed(2)%></div></div>
+    <div class="ib"><div class="l">Regular</div><div class="v"><%=calcReg>0?calcReg.toFixed(2):'—'%></div></div>
+    <div class="ib"><div class="l">Shop</div><div class="v"><%=calcNonBill>0?calcNonBill.toFixed(2):'—'%></div></div>
+    <div class="ib"><div class="l">Board-Up</div><div class="v"><%=calcBU>0?calcBU.toFixed(2):'—'%></div></div>
+    <div class="ib"><div class="l">Office</div><div class="v"><%=calcOff>0?calcOff.toFixed(2):'—'%></div></div>
+    <div class="ib"><div class="l">Leave</div><div class="v"><%=calcLeave>0?calcLeave.toFixed(2):'—'%></div></div>
+  </div>
+
+  <% if((tc.flags||[]).length){ %>
+  <div class="flag-row">⚠ <%=tc.flags.length%> flag<%=tc.flags.length>1?'s':''%>: <%=tc.flags.map(f=>f.job_name+': '+f.description).join(' • ')%></div>
+  <% } %>
+
+  <% if(tc.notes){ %><div class="notes"><strong>Notes:</strong> <%=tc.notes%></div><% } %>
+
+  <% if(leaveRows.length){ %>
+  <div class="section-hdr">Leave hours</div>
+  <table><thead><tr><th>Day</th><th>Leave type</th><th class="num">Hours</th></tr></thead><tbody>
+  <%leaveRows.forEach(function(l){%><tr><td><%=l.day_name%></td><td><%=l.leave_type||'—'%></td><td class="td-num"><%=(parseFloat(l.hours)||0).toFixed(2)%></td></tr><%})%>
+  </tbody></table>
+  <% } %>
+
+  <% if(regRows.length){ %>
+  <div class="section-hdr">Job & location hours</div>
+  <table><thead><tr><th>Location / Job</th><%DAY_LBL.forEach(d=>{%><th class="num"><%=d%></th><%})%><th class="num">Total</th><th>L&I 1</th><th>L&I 2</th></tr></thead>
+  <tbody><%regRows.forEach(function(r){const rt=parseFloat(r.total_hrs)||0;%>
+  <tr>
+    <td><%=r.job_name||'—'%><%=r.is_new_job?'<span style="margin-left:4px;background:#ede9fe;color:#5b21b6;font-size:9px;padding:1px 4px;border-radius:4px">New</span>':''%></td>
+    <%DAYS.forEach(function(d){const v=parseFloat(r[d])||0;%><td class="td-num <%=v>8?'style="color:#991b1b;font-weight:600"':''%>"><%=v>0?v.toFixed(2):'—'%></td><%})%>
+    <td class="td-num"><strong><%=rt.toFixed(2)%></strong></td>
+    <td style="font-size:10px"><%=r.li_code_1||'—'%><%=(parseFloat(r.li_hrs_1)||0)>0?' ('+parseFloat(r.li_hrs_1).toFixed(2)+'h)':''%></td>
+    <td style="font-size:10px"><%=r.li_code_2?(r.li_code_2+((parseFloat(r.li_hrs_2)||0)>0?' ('+parseFloat(r.li_hrs_2).toFixed(2)+'h)':'')):'—'%></td>
+  </tr><%})%>
+  </tbody></table>
+  <% } %>
+
+  <% if(buRows.length){ %>
+  <div class="section-hdr" style="background:#6d28d9">Board-Up hours</div>
+  <table><thead><tr><th>Job / Address</th><%DAY_LBL.forEach(d=>{%><th class="num"><%=d%></th><%})%><th class="num">Total</th><th>After hrs</th></tr></thead>
+  <tbody><%buRows.forEach(function(r){let ahDays=[];try{const ah=typeof r.after_hours==='string'?JSON.parse(r.after_hours):(r.after_hours||{});ahDays=Object.keys(ah).filter(d=>ah[d]).map(d=>d.charAt(0).toUpperCase()+d.slice(1));}catch(e){}%>
+  <tr><td><%=r.job_name||'—'%></td>
+  <%DAYS.forEach(function(d){const v=parseFloat(r[d])||0;%><td class="td-num"><%=v>0?v.toFixed(2):'—'%></td><%})%>
+  <td class="td-num"><strong><%=(parseFloat(r.total_hrs)||0).toFixed(2)%></strong></td>
+  <td style="color:#6d28d9;font-size:10px"><%=ahDays.length?ahDays.join(', '):'—'%></td>
+  </tr><%})%>
+  </tbody></table>
+  <% } %>
+
+  <% if((tc.oncall_days||[]).length){ %>
+  <div class="oncall"><strong>On-call days:</strong> <%=tc.oncall_days.join(', ')%></div>
+  <% } %>
+
+  <div class="sig">
+    <span>Employee Signature: _________________________________________________</span>
+    <span>Date: ___________________</span>
+  </div>
+</div>
+<% }); %>
+
+</body></html>
