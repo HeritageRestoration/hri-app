@@ -115,9 +115,22 @@ let ahDays=[];try{const ah=typeof r.after_hours==='string'?JSON.parse(r.after_ho
 <% } %>
 <% if(tc.notes){ %><div style="background:#fff9e6;border-left:3px solid #f0c040;padding:10px 14px;border-radius:0 6px 6px 0;font-size:12px;color:#1e2d40;margin-bottom:12px"><strong>Notes:</strong> <%=tc.notes%></div><% } %>
 
-<div style="background:#f8f9fb;border-radius:8px;padding:10px 14px;font-size:12px;color:#8fa0b8;border:0.5px solid #dde3ec">
+<div style="background:#f8f9fb;border-radius:8px;padding:10px 14px;font-size:12px;color:#8fa0b8;border:0.5px solid #dde3ec;margin-bottom:10px">
 Employee Signature: _____________________________________________ &nbsp;&nbsp; Date: _______________
 </div>
+
+<!-- Bookkeeper legend -->
+<table style="width:220px;border-collapse:collapse;font-size:11px;margin-top:4px">
+  <tbody>
+    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">S</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">BU</td></tr>
+    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#cce5ff">ST</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#cce5ff">BUOC</td></tr>
+    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">OT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">SICK</td></tr>
+    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#cce5ff">DOT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#cce5ff">VAC</td></tr>
+    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#f4c57f">PW</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#f4c57f">HOL</td></tr>
+    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">KOS</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff"></td></tr>
+  </tbody>
+  <tfoot><tr><td colspan="2" style="padding:4px 8px;border:1px solid #ccc;font-size:10px;font-style:italic;color:#555">Add here a row labeled "KOS" no color</td></tr></tfoot>
+</table>
 </div>
 <script>
 async function deleteTC(id, name) {
