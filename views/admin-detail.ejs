@@ -33,8 +33,12 @@ tbody tr:last-child td{border:none}
 </style></head><body>
 <nav class="nav">
   <a href="/admin?pw=<%= pw %>">← Back</a>
-  <h1>TC-<%= tc.id %> — <%= tc.employee_name %></h1>
+  <h1>TC-<%= tc.id %> — <%= fullName %></h1>
   <div class="nav-spacer"></div>
+  <button onclick="deleteTC(<%= tc.id %>, '<%= fullName.replace(/'/g, "\\'") %>')"
+    style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;margin-right:8px">
+    Delete Timecard
+  </button>
   <button class="print-btn" onclick="window.print()">Print / PDF</button>
 </nav>
 <div class="wrap">
@@ -114,4 +118,20 @@ let ahDays=[];try{const ah=typeof r.after_hours==='string'?JSON.parse(r.after_ho
 <div style="background:#f8f9fb;border-radius:8px;padding:10px 14px;font-size:12px;color:#8fa0b8;border:0.5px solid #dde3ec">
 Employee Signature: _____________________________________________ &nbsp;&nbsp; Date: _______________
 </div>
-</div></body></html>
+</div>
+<script>
+async function deleteTC(id, name) {
+  if (!confirm(`Delete ${name}'s timecard (TC-${id})?\n\nThis permanently deletes all hours, leave, and Board-Up entries for this submission. This cannot be undone.`)) return;
+  try {
+    const r = await fetch(`/admin/timecard/${id}/delete?pw=<%= pw %>`, { method: 'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      alert(`TC-${id} deleted successfully.`);
+      window.location.href = `/admin?pw=<%= pw %>`;
+    } else {
+      alert('Delete failed: ' + j.error);
+    }
+  } catch(e) { alert('Delete failed — please try again'); }
+}
+</script>
+</body></html>

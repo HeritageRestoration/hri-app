@@ -129,7 +129,13 @@ tbody tr.newj td{background:#faf5ff}
           <td><%= (parseFloat(t.total_leave_hrs)||0)>0?(parseFloat(t.total_leave_hrs)).toFixed(2):'—' %></td>
           <td style="font-size:11px;color:#8fa0b8"><%= t.submitted_at?new Date(t.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—' %></td>
           <td><%= t.has_mismatch?'<span class="badge mm">Flagged</span>':'' %></td>
-          <td><a href="/admin/timecard/<%= t.id %>?pw=<%= pw %>" class="vlink">View →</a></td>
+          <td style="display:flex;gap:8px;align-items:center;white-space:nowrap">
+            <a href="/admin/timecard/<%= t.id %>?pw=<%= pw %>" class="vlink">View →</a>
+            <button onclick="deleteTC(<%= t.id %>, '<%= t.employee_name %>')"
+              style="font-size:11px;padding:3px 10px;background:#fee2e2;color:#991b1b;border:0.5px solid #fecaca;border-radius:5px;cursor:pointer;font-family:inherit">
+              Delete
+            </button>
+          </td>
         </tr>
       <% }) %>
       </tbody>
@@ -224,14 +230,26 @@ async function deleteDraft(id, name) {
     if (j.ok) {
       const row = document.getElementById(`draft-row-${id}`);
       if (row) row.remove();
-      // Show empty message if no more drafts
       const tbody = document.querySelector('#apane-draft tbody');
       if (tbody && tbody.querySelectorAll('tr').length === 0) {
         document.getElementById('apane-draft').innerHTML = '<div class="empty">No drafts this week — great!</div>';
       }
-    } else {
-      alert('Delete failed — please try again');
-    }
+    } else { alert('Delete failed — please try again'); }
+  } catch(e) { alert('Delete failed — please try again'); }
+}
+
+async function deleteTC(id, name) {
+  if (!confirm(`Delete ${name}'s submitted timecard (TC-${id})?\n\nThis permanently removes all their hours for this week. This cannot be undone.`)) return;
+  try {
+    const r = await fetch(`/admin/timecard/${id}/delete?pw=<%= pw %>`, { method: 'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      // Remove the row from the table
+      const row = document.querySelector(`button[onclick="deleteTC(${id}, '${name.replace(/'/g,"\\'")}')"]`)?.closest('tr');
+      if (row) row.remove();
+      alert(`TC-${id} deleted.`);
+      location.reload();
+    } else { alert('Delete failed: ' + j.error); }
   } catch(e) { alert('Delete failed — please try again'); }
 }
 </script>

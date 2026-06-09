@@ -202,7 +202,11 @@ app.get('/admin/print-all', requireAdmin, async (req, res) => {
     const submitted = timecards.filter(t => t.status === 'submitted');
     const details = await Promise.all(submitted.map(t => db.getTimecardDetail(t.id)));
     details.sort((a,b) => a.employee_name.localeCompare(b.employee_name));
-    res.render('print-all', { timecards: details, week });
+    // Build nickname → full name lookup
+    const people = await db.getPeople();
+    const nameMap = {};
+    people.forEach(p => { nameMap[p.nickname] = p.name; });
+    res.render('print-all', { timecards: details, week, nameMap });
   } catch(e) { console.error(e); res.status(500).send('Error'); }
 });
 app.post('/admin/login', (req, res) => {
@@ -214,19 +218,22 @@ app.get('/admin/timecard/:id', requireAdmin, async (req, res) => {
   try {
     const tc = await db.getTimecardDetail(req.params.id);
     if (!tc) return res.status(404).send('Not found');
-    res.render('admin-detail', { tc, pw: ADMIN_PW });
+    const people = await db.getPeople();
+    const person = people.find(p => p.nickname === tc.employee_name || p.name === tc.employee_name);
+    const fullName = person ? person.name : tc.employee_name;
+    res.render('admin-detail', { tc, pw: ADMIN_PW, fullName });
   } catch (e) { res.status(500).send('Error'); }
 });
 
 app.post('/admin/timecard/:id/delete', requireAdmin, async (req, res) => {
   try {
-    // Only allow deleting drafts — not submitted timecards
     const { rows } = await db.pool.query(
-      'SELECT status FROM timecards WHERE id=$1', [req.params.id]
+      'SELECT status, employee_name FROM timecards WHERE id=$1', [req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ ok: false, error: 'Not found' });
-    if (rows[0].status !== 'draft') return res.status(400).json({ ok: false, error: 'Can only delete drafts' });
+    // Allow deleting both drafts and submitted timecards from admin
     await db.pool.query('DELETE FROM timecards WHERE id=$1', [req.params.id]);
+    console.log(`Admin deleted timecard ${req.params.id} (${rows[0].employee_name}, was ${rows[0].status})`);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });

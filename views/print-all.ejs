@@ -59,7 +59,7 @@ timecards.forEach(function(tc){
 %>
 <div class="card">
   <div class="card-hdr">
-    <h2><%= tc.employee_name %></h2>
+    <h2><%= nameMap[tc.employee_name] || tc.employee_name %></h2>
     <span class="meta">Week of <%= fmtD(tc.week_start) %> — <%= fmtD(tc.week_end) %> &nbsp;|&nbsp; Submitted <%= tc.submitted_at ? new Date(tc.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '—' %></span>
   </div>
 
