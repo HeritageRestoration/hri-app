@@ -260,10 +260,6 @@ function addRow(type) {
         ${jobDropdown(id)}
         <button class="rm" onclick="removeRow(${id})">×</button>
       </div>
-      <div class="dup-warn" id="dup-warn-${id}" style="display:none">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span>This job already has a row — enter all days for this job in <strong>one row</strong>, not a separate row per day. The existing row is highlighted above.</span>
-      </div>
       <div class="new-job-area" id="nja-${id}" style="display:none">
         <input type="text" id="new-job-name-${id}" placeholder="Customer name & address (e.g. Martinez, Carlos — 412 Pine St Lacey)" oninput="onNewJobName(${id})">
         <div class="nja-hint">Flagged for supervisor to add to the Job Board</div>
@@ -318,7 +314,6 @@ function onJobChange(id) {
 
   // ── Duplicate job detection ───────────────────────────────────────────────
   if (val && val !== '__NEW__' && val !== '__OFFICE__' && !NON_BILLABLE.includes(val)) {
-    const dupWarn = document.getElementById(`dup-warn-${id}`);
     const duplicate = [...document.querySelectorAll('#regRows .jcard')].find(card => {
       const otherId = card.id.replace('card-','');
       if (otherId === String(id)) return false;
@@ -326,13 +321,19 @@ function onJobChange(id) {
       return otherSel && otherSel.value === val;
     });
     if (duplicate) {
-      // Show warning and highlight the existing row
-      if (dupWarn) { dupWarn.style.display='flex'; }
-      duplicate.style.outline = '2px solid #f59e0b';
+      // Flash the existing row so they can see it
+      duplicate.style.outline = '3px solid #f59e0b';
       duplicate.style.borderRadius = '8px';
-      setTimeout(() => { duplicate.style.outline=''; }, 3000);
-    } else {
-      if (dupWarn) dupWarn.style.display='none';
+      duplicate.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => { duplicate.style.outline = ''; }, 4000);
+      // Reset this dropdown and show alert
+      if (sel) sel.value = '';
+      alert(`"${val}" already has a row above.\n\nEnter ALL days for this job in that one row — do not add a new row for each day.\n\nThe existing row has been highlighted for you.`);
+      // Unlock the grid and LI
+      if (grid) { grid.style.opacity='0.4'; grid.style.pointerEvents='none'; }
+      if (li) li.style.display='none';
+      recalc();
+      return; // stop further processing
     }
   }
 

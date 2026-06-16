@@ -127,7 +127,7 @@ tbody tr.newj td{background:#faf5ff}
           <td><%= (parseFloat(t.total_bu_hrs)||0)>0?(parseFloat(t.total_bu_hrs)).toFixed(2):'—' %></td>
           <td><%= (parseFloat(t.total_office_hrs)||0)>0?(parseFloat(t.total_office_hrs)).toFixed(2):'—' %></td>
           <td><%= (parseFloat(t.total_leave_hrs)||0)>0?(parseFloat(t.total_leave_hrs)).toFixed(2):'—' %></td>
-          <td style="font-size:11px;color:#8fa0b8"><%= t.submitted_at?new Date(t.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—' %></td>
+          <td style="font-size:11px;color:#8fa0b8"><%= t.submitted_at?new Date(t.submitted_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}):'—' %></td>
           <td><%= t.has_mismatch?'<span class="badge mm">Flagged</span>':'' %></td>
           <td style="display:flex;gap:8px;align-items:center;white-space:nowrap">
             <a href="/admin/timecard/<%= t.id %>?pw=<%= pw %>" class="vlink">View →</a>
@@ -152,7 +152,7 @@ tbody tr.newj td{background:#faf5ff}
       <% drafts.forEach(function(t){ %>
         <tr class="flagged" id="draft-row-<%= t.id %>">
           <td><strong><%= t.employee_name %></strong></td>
-          <td style="font-size:11px;color:#8fa0b8"><%= new Date(t.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) %></td>
+          <td style="font-size:11px;color:#8fa0b8"><%= new Date(t.updated_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) %></td>
           <td><%= (parseFloat(t.total_combined)||0).toFixed(2) %> hrs</td>
           <td><span class="badge draft">In progress</span></td>
           <td style="display:flex;gap:8px;align-items:center">

@@ -68,7 +68,8 @@ tbody tr:hover td{background:#f8fafb}
           <td style="font-size:11px;color:#4a5e78"><%= p.address||'—' %></td>
           <td style="display:flex;gap:6px">
             <button class="btn" style="font-size:11px;padding:4px 10px;background:#f0f4f8;color:#1a2e4a;border:none"
-              onclick="openEdit(<%- JSON.stringify(p) %>)">Edit</button>
+              data-person="<%- JSON.stringify(p).replace(/"/g, '&quot;') %>"
+              onclick="openEditBtn(this)">Edit</button>
             <button class="btn btn-danger" style="font-size:11px;padding:4px 10px"
               onclick="deactivate(<%= p.id %>, '<%= p.nickname %>')">Remove</button>
           </td>
@@ -118,6 +119,7 @@ tbody tr:hover td{background:#f8fafb}
 const PW = '<%= pw %>';
 function showMsg(txt, type){ const m=document.getElementById('msg'); m.textContent=txt; m.className='msg '+type; setTimeout(()=>m.style.display='none', 4000); }
 function openAdd(){ document.getElementById('editId').value=''; document.getElementById('fNick').value=''; document.getElementById('fName').value=''; document.getElementById('fEmail').value=''; document.getElementById('fPhone').value=''; document.getElementById('fRole').value='crew'; document.getElementById('fAddress').value=''; document.getElementById('modalTitle').textContent='Add employee'; document.getElementById('modalBg').classList.add('open'); }
+function openEditBtn(btn){ const p=JSON.parse(btn.getAttribute('data-person')); openEdit(p); }
 function openEdit(p){ document.getElementById('editId').value=p.id; document.getElementById('fNick').value=p.nickname||''; document.getElementById('fName').value=p.name||''; document.getElementById('fEmail').value=p.email||''; document.getElementById('fPhone').value=p.phone||''; document.getElementById('fRole').value=p.role||'crew'; document.getElementById('fAddress').value=p.address||''; document.getElementById('modalTitle').textContent='Edit employee'; document.getElementById('modalBg').classList.add('open'); }
 function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
 async function saveEmployee(){
