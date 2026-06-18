@@ -433,37 +433,27 @@ wss.on('connection', ws => {
       broadcastAll({ type: 'full_refresh', data: appData });
 
     } else if (msg.type === 'delete_job') {
+      // Password check — only authenticated admins can delete jobs
+      if (msg.adminPw !== ADMIN_PW) {
+        ws.send(JSON.stringify({ type: 'delete_denied', message: 'Incorrect password' }));
+        return;
+      }
+
       const deletedJob = appData.jobs[msg.idx];
       const deletedName = deletedJob ? deletedJob.name : null;
       appData.jobs.splice(msg.idx, 1);
 
-      // Name-based keys: just remove the deleted job's cells by name
-      // Everything else is untouched — no index shifting needed
-      if (deletedName) {
-        const removeJobCells = (cells) => {
-          if (!cells) return {};
-          const cleaned = {};
-          Object.keys(cells).forEach(k => {
-            const under = k.indexOf('_');
-            const prefix = k.substring(0, under);
-            // Remove cells belonging to the deleted job name
-            if (prefix !== deletedName) cleaned[k] = cells[k];
-          });
-          return cleaned;
-        };
-
-        // Clean weeks structure
-        if (appData.weeks) {
-          Object.keys(appData.weeks).forEach(wk => {
-            appData.weeks[wk].cells = removeJobCells(appData.weeks[wk].cells || {});
-          });
-        }
-        // Clean legacy flat cells
-        appData.cells = removeJobCells(appData.cells || {});
-      }
+      // IMPORTANT: We only remove the job from the active job LIST.
+      // We do NOT touch any week's cell history — past and current week
+      // assignments for this job stay intact as a historical record,
+      // they just won't show as an editable row in the table anymore
+      // since the job is no longer in appData.jobs.
+      //
+      // Cells are keyed by job name and only rendered for jobs that
+      // exist in appData.jobs, so removing the job from the list is
+      // sufficient — no cell cleanup needed, and nothing is lost.
 
       await db.saveBoardData(appData);
-      broadcastAll({ type: 'full_refresh', data: appData });
       broadcastAll({ type: 'full_refresh', data: appData });
     }
   });

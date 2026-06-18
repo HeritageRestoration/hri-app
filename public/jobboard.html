@@ -532,6 +532,9 @@ function connect() {
 
     } else if (msg.type === 'add_job' || msg.type === 'delete_job') {
       renderBoard();
+
+    } else if (msg.type === 'delete_denied') {
+      alert('Incorrect password — job was not deleted.');
     }
   };
 }
@@ -611,7 +614,11 @@ function renderBoard() {
   }));
   tbody.querySelectorAll('.del-btn').forEach(btn=>btn.addEventListener('click',()=>{
     const idx=+btn.dataset.idx;
-    if(confirm(`Remove "${state.jobs[idx]?.name}"?`)) send({type:'delete_job',idx});
+    const jobName = state.jobs[idx]?.name || '';
+    if(!confirm(`Remove "${jobName}" from the job board?\n\nThis week's and past weeks' crew assignment history for this job will be kept as a record — only the active row will be removed.`)) return;
+    const pw = prompt('Enter admin password to confirm deletion:');
+    if (pw === null) return; // cancelled
+    send({type:'delete_job', idx, adminPw: pw});
   }));
 }
 
