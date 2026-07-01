@@ -200,6 +200,9 @@ function jobDropdown(id) {
     <optgroup label="Office">
       <option value="__OFFICE__">Office (Clerical / Admin / PM / Sales / Legal)</option>
     </optgroup>
+    <optgroup label="Possible Jobs">
+      <option value="__POSSIBLE__">Possible Job (Pre-Sale / Estimate)</option>
+    </optgroup>
     <optgroup label="Non-billable">
       <option value="Shop (Non-Billable)">Shop (Non-Billable)</option>
     </optgroup>
@@ -304,7 +307,7 @@ function addRow(type) {
 function onJobChange(id) {
   const sel = document.getElementById(`job-${id}`);
   const val = sel?.value||'';
-  const isNew = val==='__NEW__', isOffice = val==='__OFFICE__';
+  const isNew = val==='__NEW__', isOffice = val==='__OFFICE__', isPossible = val==='__POSSIBLE__';
   const nb = NON_BILLABLE.includes(val);
   const noLI = NO_LI_REQUIRED.includes(val);
   const hasJob = !!val && val !== '__NEW__' || (isNew && (document.getElementById(`new-job-name-${id}`)?.value||'').trim());
@@ -313,7 +316,7 @@ function onJobChange(id) {
   const li = document.getElementById(`li-${id}`);
 
   // ── Duplicate job detection ───────────────────────────────────────────────
-  if (val && val !== '__NEW__' && val !== '__OFFICE__' && !NON_BILLABLE.includes(val)) {
+  if (val && val !== '__NEW__' && val !== '__OFFICE__' && val !== '__POSSIBLE__' && !NON_BILLABLE.includes(val)) {
     const duplicate = [...document.querySelectorAll('#regRows .jcard')].find(card => {
       const otherId = card.id.replace('card-','');
       if (otherId === String(id)) return false;
@@ -337,15 +340,20 @@ function onJobChange(id) {
     }
   }
 
-  if (nja) nja.style.display = isNew ? 'block' : 'none';
-  if (grid) { grid.style.opacity = (val&&!isNew)||hasJob ? '1':'0.4'; grid.style.pointerEvents = (val&&!isNew)||hasJob ? '':'none'; }
+  // Possible Jobs uses a name input just like New Job, and office L&I codes
+  if (nja) nja.style.display = (isNew || isPossible) ? 'block' : 'none';
+  if (isPossible && nja) {
+    const ni = nja.querySelector('input');
+    if (ni) ni.placeholder = 'Prospect / customer name (e.g. Smith, John — estimate for kitchen)';
+  }
+  if (grid) { grid.style.opacity = (val&&!isNew&&!isPossible)||hasJob ? '1':'0.4'; grid.style.pointerEvents = (val&&!isNew&&!isPossible)||hasJob ? '':'none'; }
   if (li) {
-    li.style.display = (!val||noLI||(isNew&&!hasJob)) ? 'none' : '';
-    if (isOffice) updateLIForOffice(id);
+    li.style.display = (!val||noLI||((isNew||isPossible)&&!hasJob)) ? 'none' : '';
+    if (isOffice || isPossible) updateLIForOffice(id);
     else resetLIForField(id);
   }
   const card = document.getElementById(`card-${id}`);
-  if (card) { card.className = 'jcard'+(isOffice?' office':isNew?' newjob':''); }
+  if (card) { card.className = 'jcard'+(isOffice?' office':isPossible?' possible':isNew?' newjob':''); }
   recalc(); scheduleSave();
 }
 
@@ -521,10 +529,10 @@ function recalc() {
     const isBU = card.hasAttribute('data-bu');
     const jobEl = document.getElementById(`job-${id}`);
     const job = jobEl?.value||'';
-    const isNew = job==='__NEW__', isOffice = job==='__OFFICE__';
+    const isNew = job==='__NEW__', isOffice = job==='__OFFICE__', isPossible = job==='__POSSIBLE__';
     const nb = NON_BILLABLE.includes(job);
     const newName = (document.getElementById(`new-job-name-${id}`)?.value||'').trim();
-    const hasJob = (!!job&&!isNew)||( isNew&&!!newName);
+    const hasJob = (!!job&&!isNew&&!isPossible)||((isNew||isPossible)&&!!newName);
     let rowTot=0, ahDays=[];
 
     DAYS.forEach(d => {
@@ -538,7 +546,7 @@ function recalc() {
       if (isBU) { const cb=document.getElementById(`ah-${id}-${d}`); if(cb?.checked&&v>0)ahDays.push(d); }
     });
 
-    if (isOffice) offHrs+=rowTot;
+    if (isOffice || isPossible) offHrs+=rowTot;
     else if (isBU) buHrs+=rowTot;
     else if (nb) nonBillHrs+=rowTot; // Shop counts toward total
     else regHrs+=rowTot;
@@ -560,8 +568,9 @@ function recalc() {
     else if (hasJob&&rowTot>0&&!noLIRow&&!isBU) {
       filled++;
       const liSel = document.getElementById(`li-sel-${id}-1`);
-      if (!liSel?.value) { missingLI++; card.className=`jcard${isOffice?' office':isNew?' newjob':''} needs-li`; }
-      else { card.className=`jcard${isOffice?' office':isNew?' newjob':''} valid`; }
+      const cardCls = isOffice?' office':isPossible?' possible':isNew?' newjob':'';
+      if (!liSel?.value) { missingLI++; card.className=`jcard${cardCls} needs-li`; }
+      else { card.className=`jcard${cardCls} valid`; }
       if (jobEl) jobEl.style.borderColor='';
       const h1=parseFloat(document.getElementById(`li-hrs-${id}-1`)?.value)||0;
       const h2El=document.getElementById(`li-hrs-${id}-2`);
@@ -571,7 +580,7 @@ function recalc() {
     } else if (hasJob&&rowTot>0&&(noLIRow||isBU)) {
       filled++; card.className=`jcard${isBU?' valid':''}`;
       if(jobEl)jobEl.style.borderColor='';
-    } else { card.className=`jcard${isOffice?' office':isNew?' newjob':''}`; if(jobEl)jobEl.style.borderColor=''; }
+    } else { card.className=`jcard${isOffice?' office':isPossible?' possible':isNew?' newjob':''}`; if(jobEl)jobEl.style.borderColor=''; }
   });
 
   // Totals bar
@@ -669,9 +678,9 @@ function buildPayload(status) {
     const isBU = card.hasAttribute('data-bu');
     const jobEl = document.getElementById(`job-${id}`);
     const job = jobEl?.value||'';
-    const isNew = job==='__NEW__', isOffice=job==='__OFFICE__';
+    const isNew = job==='__NEW__', isOffice=job==='__OFFICE__', isPossible=job==='__POSSIBLE__';
     const isNonBill = NON_BILLABLE.includes(job);
-    const jobName = isNew ? (document.getElementById(`new-job-name-${id}`)?.value||'')
+    const jobName = (isNew||isPossible) ? (document.getElementById(`new-job-name-${id}`)?.value||'')
                   : isOffice ? 'Office' : job;
     const dayVals = {};
     DAYS_LC.forEach((d,i) => { dayVals[d] = parseFloat(document.getElementById(`hrs-${id}-${DAYS[i]}`)?.value)||0; });
@@ -682,6 +691,7 @@ function buildPayload(status) {
       job_name: jobName,
       is_new_job: isNew,
       is_office: isOffice,
+      is_possible: isPossible,
       is_nonbill: isNonBill,
       ...dayVals,
       total_hrs: DAYS_LC.reduce((s,d)=>s+(dayVals[d]||0),0),
@@ -832,6 +842,7 @@ function loadDraft(draft) {
       const jobSel = document.getElementById(`job-${id}`);
       if (jobSel) {
         if (row.is_office) jobSel.value='__OFFICE__';
+        else if (row.is_possible) jobSel.value='__POSSIBLE__';
         else if (row.is_new_job) {
           jobSel.value='__NEW__';
           const ni=document.getElementById(`new-job-name-${id}`);

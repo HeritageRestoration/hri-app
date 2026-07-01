@@ -119,17 +119,41 @@ let ahDays=[];try{const ah=typeof r.after_hours==='string'?JSON.parse(r.after_ho
 Employee Signature: _____________________________________________ &nbsp;&nbsp; Date: _______________
 </div>
 
-<!-- Bookkeeper legend -->
-<table style="width:220px;border-collapse:collapse;font-size:11px;margin-top:4px">
-  <tbody>
-    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">S</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">BU</td></tr>
-    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">ST</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">BUOC</td></tr>
-    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">OT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">SICK</td></tr>
-    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">DOT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">VAC</td></tr>
-    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">PW</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">HOL</td></tr>
-    <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">KOS</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff"></td></tr>
-  </tbody>
-</table>
+<!-- Bookkeeper legends -->
+<div style="display:flex;gap:20px;align-items:flex-start;margin-top:4px;flex-wrap:wrap">
+
+  <!-- Left legend: pay type codes -->
+  <table style="border-collapse:collapse;font-size:11px">
+    <tbody>
+      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">S</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">BU</td></tr>
+      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">ST</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">BUOC</td></tr>
+      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">OT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">SICK</td></tr>
+      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">DOT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">VAC</td></tr>
+      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">PW</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">HOL</td></tr>
+      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">KOS</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic"></td></tr>
+    </tbody>
+  </table>
+
+  <!-- Right legend: L&I codes -->
+  <table style="border-collapse:collapse;font-size:11px">
+    <tbody>
+      <tr>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Est<br>4911</td>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Sales<br>6303</td>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Office<br>4904</td>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Proj<br>Mgr<br>4900</td>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Paint<br>0521</td>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Carp<br>0513</td>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Bldg<br>Rep<br>0516</td>
+        <td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic">Clean<br>6602</td>
+      </tr>
+      <tr>
+        <td colspan="8" style="padding:3px 8px;border:1px solid #ccc;font-size:10px;font-style:italic;color:#555"></td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
 </div>
 <script>
 async function deleteTC(id, name) {

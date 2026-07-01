@@ -120,6 +120,7 @@ async function initDB() {
       job_name     TEXT,
       is_new_job   BOOLEAN DEFAULT FALSE,
       is_office    BOOLEAN DEFAULT FALSE,
+      is_possible  BOOLEAN DEFAULT FALSE,
       is_nonbill   BOOLEAN DEFAULT FALSE,
       sun NUMERIC(5,2) DEFAULT 0, mon NUMERIC(5,2) DEFAULT 0,
       tue NUMERIC(5,2) DEFAULT 0, wed NUMERIC(5,2) DEFAULT 0,
@@ -285,6 +286,8 @@ async function upsertTimecard(data) {
       }
     }
 
+  await pool.query(`ALTER TABLE timecard_rows ADD COLUMN IF NOT EXISTS is_possible BOOLEAN DEFAULT FALSE`).catch(()=>{});
+
     // Replace job rows
     await client.query('DELETE FROM timecard_rows WHERE timecard_id=$1', [tcId]);
     const DAYS = ['sun','mon','tue','wed','thu','fri','sat'];
@@ -293,13 +296,14 @@ async function upsertTimecard(data) {
       const total = dayVals.reduce((a,b)=>a+b, 0);
       await client.query(
         `INSERT INTO timecard_rows
-          (timecard_id, section, job_name, is_new_job, is_office, is_nonbill,
+          (timecard_id, section, job_name, is_new_job, is_office, is_possible, is_nonbill,
            sun, mon, tue, wed, thu, fri, sat, total_hrs,
            li_code_1, li_hrs_1, li_code_2, li_hrs_2, after_hours)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
         [tcId, row.section||'regular', row.job_name||'',
          row.is_new_job===true||row.is_new_job==='true',
          row.is_office===true||row.is_office==='true',
+         row.is_possible===true||row.is_possible==='true',
          row.is_nonbill===true||row.is_nonbill==='true',
          ...dayVals, total,
          row.li_code_1||'', parseFloat(row.li_hrs_1)||0,
@@ -320,7 +324,7 @@ async function upsertTimecard(data) {
     const regHrs    = (data.rows||[]).filter(r=>r.section==='regular'&&!r.is_office&&!r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0);
     const nonBillHrs= (data.rows||[]).filter(r=>r.is_nonbill&&r.job_name!=='Lack of Work').reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0); // Shop counts toward total
     const buHrs     = (data.rows||[]).filter(r=>r.section==='boardup').reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0);
-    const offHrs    = (data.rows||[]).filter(r=>r.is_office).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0);
+    const offHrs    = (data.rows||[]).filter(r=>r.is_office||r.is_possible).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0), 0);
     const combined  = regHrs + nonBillHrs + buHrs + paidLeave + offHrs;
     await client.query(
       `UPDATE timecards SET total_reg_hrs=$1, total_bu_hrs=$2, total_leave_hrs=$3,

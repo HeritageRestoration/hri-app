@@ -51,6 +51,7 @@ a{color:inherit;text-decoration:none}
 .jcard.valid{border-color:#6ee7b7}
 .jcard.office{border-color:#bfdbfe}
 .jcard.newjob{border-color:#a78bfa}
+.jcard.possible{border-color:#6ee7b7;background:#f0fdf9}
 .jcard.err{border-color:#fca5a5}
 .jcard.needs-li{border-color:#fbbf24}
 .jtop{display:flex;gap:6px;align-items:center;padding:8px 10px;background:#f8f9fb;flex-wrap:wrap}

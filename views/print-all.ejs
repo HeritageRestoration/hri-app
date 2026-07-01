@@ -3,9 +3,10 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;font-size:11px;color:#1e2d40;background:#fff}
-.no-print{padding:12px 20px;background:#1a2e4a;color:#fff;display:flex;align-items:center;gap:12px}
+.no-print{padding:12px 20px;background:#1a2e4a;color:#fff;display:flex;align-items:flex-start;gap:20px}
 .no-print button{background:#2e6fad;color:#fff;border:none;border-radius:5px;padding:7px 16px;font-size:12px;cursor:pointer}
 .no-print span{font-size:13px;font-weight:600}
+.card.hidden-card{display:none}
 .card{page-break-after:always;padding:20px;max-width:780px;margin:0 auto;border-bottom:2px solid #dde3ec}
 .card:last-child{page-break-after:auto;border-bottom:none}
 .card-hdr{background:#1a2e4a;color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-radius:4px}
@@ -35,9 +36,29 @@ tbody tr:last-child td{border:none}
 </style></head><body>
 
 <div class="no-print">
-  <span>🖨 Print All Time Cards — <%= timecards.length %> submitted</span>
-  <button onclick="window.print()">Print / Save as PDF</button>
-  <button onclick="window.close()" style="background:rgba(255,255,255,.15)">Close</button>
+  <div style="display:flex;flex-direction:column;gap:8px;min-width:220px">
+    <span style="font-size:13px;font-weight:600">🖨 Print All Time Cards — <span id="selCount"><%= timecards.length %></span> of <%= timecards.length %> selected</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="window.print()">Print / Save as PDF</button>
+      <button onclick="window.close()" style="background:rgba(255,255,255,.15)">Close</button>
+    </div>
+  </div>
+  <div style="border-left:1px solid rgba(255,255,255,.2);padding-left:16px;display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:2px">Select who to include in print:</div>
+    <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer">
+      <input type="checkbox" id="chkAll" checked onchange="toggleAll(this.checked)" style="width:14px;height:14px;cursor:pointer">
+      <strong>Select All</strong>
+    </label>
+    <div id="empCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;max-height:200px;overflow-y:auto">
+      <% timecards.forEach(function(tc, i){ %>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="emp-chk" data-idx="<%= i %>" checked
+          onchange="toggleCard(<%= i %>, this.checked)" style="width:13px;height:13px;cursor:pointer">
+        <%= nameMap[tc.employee_name] || tc.employee_name %>
+      </label>
+      <% }) %>
+    </div>
+  </div>
 </div>
 
 <% 
@@ -46,7 +67,7 @@ const DAY_LBL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const fh=n=>(parseFloat(n)||0)>0?(parseFloat(n)).toFixed(2):'—';
 const fmtD=d=>{if(!d)return'—';try{const dt=d instanceof Date?d:new Date(typeof d==='string'&&d.length===10?d+'T12:00:00':d);return isNaN(dt)?'—':dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return'—';}};
 
-timecards.forEach(function(tc){
+timecards.forEach(function(tc, tcIdx){
   const calcReg     = (tc.rows||[]).filter(r=>r.section==='regular'&&!r.is_office&&!r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
   const calcNonBill = (tc.rows||[]).filter(r=>r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
   const calcBU      = (tc.rows||[]).filter(r=>r.section==='boardup').reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
@@ -57,7 +78,7 @@ timecards.forEach(function(tc){
   const regRows     = (tc.rows||[]).filter(r=>r.section==='regular'&&(parseFloat(r.total_hrs)||0)>0);
   const buRows      = (tc.rows||[]).filter(r=>r.section==='boardup'&&(parseFloat(r.total_hrs)||0)>0);
 %>
-<div class="card">
+<div class="card" id="card-<%= tcIdx %>" data-idx="<%= tcIdx %>">
   <div class="card-hdr">
     <h2><%= nameMap[tc.employee_name] || tc.employee_name %></h2>
     <span class="meta">Week of <%= fmtD(tc.week_start) %> — <%= fmtD(tc.week_end) %> &nbsp;|&nbsp; Submitted <%= tc.submitted_at ? new Date(tc.submitted_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) : '—' %></span>
@@ -120,17 +141,67 @@ timecards.forEach(function(tc){
     <span>Date: ___________________</span>
   </div>
 
-  <table style="width:220px;border-collapse:collapse;font-size:10px;margin-top:8px">
-    <tbody>
-      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">S</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">BU</td></tr>
-      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">ST</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">BUOC</td></tr>
-      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">OT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">SICK</td></tr>
-      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">DOT</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">VAC</td></tr>
-      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">PW</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">HOL</td></tr>
-      <tr><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff">KOS</td><td style="padding:3px 8px;border:1px solid #ccc;font-weight:700;font-style:italic;background:#fff"></td></tr>
-    </tbody>
-  </table>
+  <div class="sig">
+    <span>Employee Signature: _________________________________________________</span>
+    <span>Date: ___________________</span>
+  </div>
+
+  <div style="display:flex;gap:16px;align-items:flex-start;margin-top:8px;flex-wrap:wrap">
+    <!-- Pay type codes -->
+    <table style="border-collapse:collapse;font-size:10px">
+      <tbody>
+        <tr><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">S</td><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">BU</td></tr>
+        <tr><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">ST</td><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">BUOC</td></tr>
+        <tr><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">OT</td><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">SICK</td></tr>
+        <tr><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">DOT</td><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">VAC</td></tr>
+        <tr><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">PW</td><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">HOL</td></tr>
+        <tr><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">KOS</td><td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic"></td></tr>
+      </tbody>
+    </table>
+    <!-- L&I code reference -->
+    <table style="border-collapse:collapse;font-size:10px">
+      <tbody>
+        <tr>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Est<br>4911</td>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Sales<br>6303</td>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Office<br>4904</td>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Proj<br>Mgr<br>4900</td>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Paint<br>0521</td>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Carp<br>0513</td>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Bldg<br>Rep<br>0516</td>
+          <td style="padding:2px 6px;border:1px solid #ccc;font-weight:700;font-style:italic">Clean<br>6602</td>
+        </tr>
+        <tr><td colspan="8" style="padding:2px 6px;border:1px solid #ccc;font-size:9px;font-style:italic;color:#555"></td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <% }); %>
 
+<script>
+const total = <%= timecards.length %>;
+
+function updateCount() {
+  const checked = document.querySelectorAll('.emp-chk:checked').length;
+  document.getElementById('selCount').textContent = checked;
+  // Update Select All state
+  const allChk = document.getElementById('chkAll');
+  allChk.indeterminate = checked > 0 && checked < total;
+  allChk.checked = checked === total;
+}
+
+function toggleAll(checked) {
+  document.querySelectorAll('.emp-chk').forEach(chk => {
+    chk.checked = checked;
+    toggleCard(+chk.dataset.idx, checked);
+  });
+  updateCount();
+}
+
+function toggleCard(idx, show) {
+  const card = document.getElementById('card-' + idx);
+  if (card) card.classList.toggle('hidden-card', !show);
+  updateCount();
+}
+</script>
 </body></html>
