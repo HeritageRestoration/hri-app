@@ -35,6 +35,10 @@ tbody tr:last-child td{border:none}
   <a href="/admin?pw=<%= pw %>">← Back</a>
   <h1>TC-<%= tc.id %> — <%= fullName %></h1>
   <div class="nav-spacer"></div>
+  <button onclick="openEditModal()"
+    style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;margin-right:8px">
+    ✏ Edit Timecard
+  </button>
   <button onclick="deleteTC(<%= tc.id %>, '<%= fullName.replace(/'/g, "\\'") %>')"
     style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;margin-right:8px">
     Delete Timecard
@@ -115,8 +119,8 @@ let ahDays=[];try{const ah=typeof r.after_hours==='string'?JSON.parse(r.after_ho
 <% } %>
 <% if(tc.notes){ %><div style="background:#fff9e6;border-left:3px solid #f0c040;padding:10px 14px;border-radius:0 6px 6px 0;font-size:12px;color:#1e2d40;margin-bottom:12px"><strong>Notes:</strong> <%=tc.notes%></div><% } %>
 
-<div style="background:#f8f9fb;border-radius:8px;padding:10px 14px;font-size:12px;color:#8fa0b8;border:0.5px solid #dde3ec;margin-bottom:10px">
-Employee Signature: _____________________________________________ &nbsp;&nbsp; Date: _______________
+<div style="background:#f8f9fb;border-radius:8px;padding:10px 14px;font-size:11px;color:#4a5e78;border:0.5px solid #dde3ec;margin-bottom:10px;font-style:italic;text-align:center">
+  By submitting this time card, the employee certifies that the hours reported are accurate and a true reflection of time worked during the week indicated.
 </div>
 
 <!-- Bookkeeper legends -->
@@ -168,6 +172,66 @@ async function deleteTC(id, name) {
       alert('Delete failed: ' + j.error);
     }
   } catch(e) { alert('Delete failed — please try again'); }
+}
+
+function openEditModal() {
+  document.getElementById('editModal').style.display = 'flex';
+}
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+}
+</script>
+
+<!-- Admin Edit Modal -->
+<div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:10px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="background:#1a2e4a;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;font-weight:600">Edit Timecard — TC-<%= tc.id %></span>
+      <button onclick="closeEditModal()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:16px">
+      <p style="font-size:12px;color:#4a5e78;margin-bottom:14px">
+        Make corrections to this submitted timecard. The status will remain "submitted" and a note will be added indicating it was admin-edited.
+      </p>
+      <div style="background:#fffbf0;border:0.5px solid #f0d070;border-radius:6px;padding:10px 12px;font-size:11px;color:#92400e;margin-bottom:14px">
+        ⚠ To make detailed hour corrections, delete this timecard and have the employee resubmit — or use the fields below to add an admin note about the correction.
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#4a5e78;margin-bottom:4px">Admin correction note</label>
+        <textarea id="adminNote" rows="3" placeholder="e.g. Corrected Monday hours from 8 to 6 per supervisor approval" style="width:100%;border:0.5px solid #dde3ec;border-radius:6px;padding:8px;font-size:12px;resize:vertical;font-family:inherit"></textarea>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:#4a5e78;margin-bottom:4px">Corrected total hours (optional)</label>
+        <input type="number" id="adminTotalHrs" min="0" step="0.25" placeholder="Leave blank to keep current total" style="width:100%;border:0.5px solid #dde3ec;border-radius:6px;padding:7px 10px;font-size:13px">
+        <div style="font-size:10px;color:#8fa0b8;margin-top:4px">Current total: <%= calcTotal.toFixed(2) %> hrs</div>
+      </div>
+    </div>
+    <div style="padding:12px 16px;border-top:0.5px solid #dde3ec;display:flex;gap:8px;justify-content:flex-end;background:#f8f9fb">
+      <button onclick="closeEditModal()" style="padding:7px 14px;background:#f0f4f8;color:#4a5e78;border:none;border-radius:6px;font-size:12px;cursor:pointer">Cancel</button>
+      <button onclick="saveAdminEdit()" style="padding:7px 14px;background:#1a2e4a;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Save correction</button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function saveAdminEdit() {
+  const note = document.getElementById('adminNote').value.trim();
+  const totalHrs = document.getElementById('adminTotalHrs').value;
+  if (!note) { alert('Please add a correction note explaining what was changed.'); return; }
+  try {
+    const r = await fetch(`/admin/timecard/<%= tc.id %>/edit?pw=<%= pw %>`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note, total_combined: totalHrs || null })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      alert('Correction saved. The timecard has been updated.');
+      location.reload();
+    } else {
+      alert('Save failed: ' + j.error);
+    }
+  } catch(e) { alert('Save failed — please try again'); }
 }
 </script>
 </body></html>

@@ -136,14 +136,8 @@ timecards.forEach(function(tc, tcIdx){
   <div class="oncall"><strong>On-call days:</strong> <%=tc.oncall_days.join(', ')%></div>
   <% } %>
 
-  <div class="sig">
-    <span>Employee Signature: _________________________________________________</span>
-    <span>Date: ___________________</span>
-  </div>
-
-  <div class="sig">
-    <span>Employee Signature: _________________________________________________</span>
-    <span>Date: ___________________</span>
+  <div class="sig" style="font-style:italic;color:#4a5e78;text-align:center;display:block;border:0.5px solid #dde3ec;border-radius:4px;padding:8px 12px;margin-top:10px">
+    By submitting this time card, the employee certifies that the hours reported are accurate and a true reflection of time worked during the week indicated.
   </div>
 
   <div style="display:flex;gap:16px;align-items:flex-start;margin-top:8px;flex-wrap:wrap">

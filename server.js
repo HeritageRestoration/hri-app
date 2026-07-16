@@ -225,6 +225,35 @@ app.get('/admin/timecard/:id', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).send('Error'); }
 });
 
+app.post('/admin/timecard/:id/edit', requireAdmin, async (req, res) => {
+  try {
+    const { note, total_combined } = req.body;
+    const tc = await db.getTimecardDetail(req.params.id);
+    if (!tc) return res.status(404).json({ ok: false, error: 'Not found' });
+
+    // Append admin note to existing notes
+    const timestamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    const existingNotes = tc.notes || '';
+    const newNotes = existingNotes
+      ? `${existingNotes}\n\n[Admin edit ${timestamp}]: ${note}`
+      : `[Admin edit ${timestamp}]: ${note}`;
+
+    // Update notes and optionally the total hours
+    if (total_combined && parseFloat(total_combined) >= 0) {
+      await db.pool.query(
+        `UPDATE timecards SET notes=$1, total_combined=$2, updated_at=NOW() WHERE id=$3`,
+        [newNotes, parseFloat(total_combined), req.params.id]
+      );
+    } else {
+      await db.pool.query(
+        `UPDATE timecards SET notes=$1, updated_at=NOW() WHERE id=$2`,
+        [newNotes, req.params.id]
+      );
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 app.post('/admin/timecard/:id/delete', requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.pool.query(
