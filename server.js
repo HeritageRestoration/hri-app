@@ -5,7 +5,7 @@ const path    = require('path');
 const express = require('express');
 const { WebSocketServer } = require('ws');
 const db      = require('./db');
-const { sendMail, emailSubmitted } = require('./lib/email');
+const { sendMail } = require('./lib/email');
 const { startScheduler } = require('./lib/scheduler');
 const { buildExportRows, rowsToCSV } = require('./lib/qbexport');
 
@@ -144,16 +144,6 @@ app.post('/timecard/submit', async (req, res) => {
     const { flags, ...data } = req.body;
     const tcId = await db.upsertTimecard({ ...data, status: 'submitted' });
     await db.submitTimecard(tcId, flags || []);
-    const tc   = await db.getTimecardDetail(tcId);
-    const mgrs = await db.getPeople('manager');
-    const mgEmails = mgrs.filter(m => m.email).map(m => m.email);
-    const bks  = await db.getPeople('bookkeeper');
-    const bkEmails = bks.filter(b => b.email).map(b => b.email);
-    const toEmails = [...mgEmails, ...bkEmails];
-    if (toEmails.length) {
-      sendMail(toEmails, `Time Card: ${tc.employee_name} — Week of ${fmtDateShort(tc.week_start)}`,
-        emailSubmitted(tc, appUrl())).catch(e => console.error('Email error:', e.message, e.stack?.split('\n')[1]||''));
-    }
     res.json({ ok: true, id: tcId });
   } catch (e) {
     console.error('Submit error:', e.message);
