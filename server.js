@@ -68,10 +68,20 @@ app.get('/timecard/draft', async (req, res) => {
   }
 });
 
+// Helper — always snap week_start to the Sunday of that week
+function snapToSunday(dateStr) {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr + 'T12:00:00');
+  if (isNaN(d)) return dateStr;
+  d.setDate(d.getDate() - d.getDay()); // go back to Sunday
+  return d.toISOString().split('T')[0];
+}
+
 // Auto-save draft
 app.post('/timecard/save', async (req, res) => {
   try {
-    const tcId = await db.upsertTimecard({ ...req.body, status: 'draft' });
+    const body = { ...req.body, week_start: snapToSunday(req.body.week_start) };
+    const tcId = await db.upsertTimecard({ ...body, status: 'draft' });
     res.json({ ok: true, id: tcId });
   } catch (e) {
     console.error('Save error:', e.message);
@@ -142,6 +152,7 @@ app.post('/timecard/check', async (req, res) => {
 app.post('/timecard/submit', async (req, res) => {
   try {
     const { flags, ...data } = req.body;
+    data.week_start = snapToSunday(data.week_start);
     const tcId = await db.upsertTimecard({ ...data, status: 'submitted' });
     await db.submitTimecard(tcId, flags || []);
     res.json({ ok: true, id: tcId });

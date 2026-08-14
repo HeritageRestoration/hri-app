@@ -46,6 +46,9 @@
       <div class="mf">
         <label>Week start (Sun) *</label>
         <input type="date" id="wkStart" onchange="onWeekChange()">
+        <span id="weekSnapNotice" style="display:none;font-size:10px;color:#d97706;margin-top:3px;display:none">
+          ↩ Snapped to Sunday — our week starts on Sunday
+        </span>
       </div>
       <div class="mf">
         <label>Week end (Sat)</label>
@@ -783,11 +786,28 @@ async function doFinalSubmit(flags) {
 // ── Load draft ────────────────────────────────────────────────────────────────
 function onNameChange() { tryLoadDraft(); recalc(); } // removed scheduleSave() — draft load handles saving
 function onWeekChange() {
-  const s = document.getElementById('wkStart')?.value;
-  if (s) {
-    const end = new Date(s+'T12:00:00'); end.setDate(end.getDate()+6);
-    document.getElementById('wkEnd').value = end.toISOString().split('T')[0];
+  const input = document.getElementById('wkStart');
+  const s = input?.value;
+  if (!s) return;
+
+  // Always snap to the Sunday of the selected week
+  const picked = new Date(s + 'T12:00:00');
+  const dayOfWeek = picked.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+  if (dayOfWeek !== 0) {
+    // Snap back to the Sunday of that week
+    picked.setDate(picked.getDate() - dayOfWeek);
+    input.value = picked.toISOString().split('T')[0];
+    // Show a brief notice
+    const notice = document.getElementById('weekSnapNotice');
+    if (notice) {
+      notice.style.display = 'inline';
+      setTimeout(() => notice.style.display = 'none', 3000);
+    }
   }
+
+  const sun = new Date(input.value + 'T12:00:00');
+  const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+  document.getElementById('wkEnd').value = sat.toISOString().split('T')[0];
   tryLoadDraft(); recalc();
 }
 
