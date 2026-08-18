@@ -467,9 +467,10 @@ async function loadBoardData() {
   if (!data.weeks) data.weeks = {};
   // Ensure all jobs have address/phone fields (TWEAK 5)
   data.jobs.forEach(j => {
-    if (j.code === undefined) j.code = '';
+    if (j.code === undefined)   j.code    = '';
     if (j.address === undefined) j.address = '';
-    if (j.phone === undefined) j.phone = '';
+    if (j.phone === undefined)  j.phone   = '';
+    if (j.closed === undefined) j.closed  = false;
   });
   return data;
 }

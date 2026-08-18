@@ -176,10 +176,18 @@
   td.meta[contenteditable="true"]:focus { outline: 2px solid var(--blue); outline-offset: -2px; border-radius: 3px; }
   td.meta.code[contenteditable="true"]:focus { outline-color: var(--purple); }
 
-  td.del-cell { background: var(--white); text-align: center; vertical-align: middle; padding: 0; }
+  td.del-cell { background: var(--white); text-align: center; vertical-align: middle; padding: 2px 4px; white-space: nowrap; }
   tr.job-row:nth-child(even) td.del-cell { background: var(--row-alt); }
-  .del-btn { background: none; border: none; cursor: pointer; color: var(--gray-400); font-size: 16px; padding: 4px 6px; border-radius: var(--r); transition: color 0.12s, background 0.12s; line-height: 1; }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--gray-400); font-size: 15px; padding: 3px 5px; border-radius: var(--r); transition: color 0.12s, background 0.12s; line-height: 1; }
   .del-btn:hover { color: #ef4444; background: #fee2e2; }
+  .close-btn { background: none; border: none; cursor: pointer; color: #16a34a; font-size: 13px; padding: 3px 6px; border-radius: var(--r); transition: background 0.12s; line-height: 1; font-weight: 600; white-space: nowrap; }
+  .close-btn:hover { background: #dcfce7; }
+  .reopen-btn { background: none; border: none; cursor: pointer; color: #6b7280; font-size: 11px; padding: 3px 6px; border-radius: var(--r); transition: background 0.12s; line-height: 1; }
+  .reopen-btn:hover { background: #f3f4f6; }
+  /* Closed job row styling */
+  tr.job-row.job-closed td.meta { opacity: 0.4; text-decoration: line-through; }
+  tr.job-row.job-closed td.crew-cell,
+  tr.job-row.job-closed td.wknd-cell { opacity: 0.3; pointer-events: none; }
 
   /* ── Crew / weekend cells ── */
   td.crew-cell { background: var(--crew-bg); border-left: 1px solid var(--crew-bdr); padding: 3px; vertical-align: top; }
@@ -566,8 +574,10 @@ function renderBoard() {
 
   const tbody=document.getElementById('tbody'); tbody.innerHTML='';
   state.jobs.forEach((job,i)=>{
-    const tr=document.createElement('tr'); tr.className='job-row'; tr.dataset.idx=i;
-    // TWEAK 5: name cell has info icon that opens customer popup
+    const isClosed = !!job.closed;
+    const tr=document.createElement('tr');
+    tr.className='job-row' + (isClosed ? ' job-closed' : '');
+    tr.dataset.idx=i;
     const hasContact = job.address||job.phone;
     tr.innerHTML=`
       <td class="meta name" style="white-space:nowrap">
@@ -583,11 +593,20 @@ function renderBoard() {
       const td=document.createElement('td');
       td.className=day==='Sat/Sun'?'wknd-cell':'crew-cell';
       td.dataset.idx=i; td.dataset.day=day;
-      renderCrewCell(td,i,day);
+      if (!isClosed) renderCrewCell(td,i,day);
+      else td.innerHTML='<span style="font-size:10px;color:#9ca3af;padding:4px">closed</span>';
       tr.appendChild(td);
     });
     const del=document.createElement('td'); del.className='del-cell meta';
-    del.innerHTML=`<button class="del-btn" data-idx="${i}" title="Remove">×</button>`;
+    if (isClosed) {
+      del.innerHTML=`
+        <button class="reopen-btn" data-idx="${i}" title="Reopen this job">↩ Reopen</button>
+        <button class="del-btn" data-idx="${i}" title="Permanently delete" style="font-size:12px">×</button>`;
+    } else {
+      del.innerHTML=`
+        <button class="close-btn" data-idx="${i}" title="Mark job as done — removes from future weeks">✓ Close job</button>
+        <button class="del-btn" data-idx="${i}" title="Permanently delete" style="font-size:12px">×</button>`;
+    }
     tr.appendChild(del);
     tbody.appendChild(tr);
   });
@@ -599,7 +618,6 @@ function renderBoard() {
     });
     el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();el.blur();}});
   });
-  // Name span (contenteditable inside td)
   tbody.querySelectorAll('.meta.name span[contenteditable]').forEach(el=>{
     el.addEventListener('blur',()=>{
       const idx=+el.dataset.idx,val=el.innerText.trim();
@@ -607,17 +625,32 @@ function renderBoard() {
     });
     el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();el.blur();}});
   });
-  // TWEAK 5: customer info popup
   tbody.querySelectorAll('.cust-info-btn').forEach(btn=>btn.addEventListener('click',e=>{
-    e.stopPropagation();
-    openCustPopup(+btn.dataset.idx);
+    e.stopPropagation(); openCustPopup(+btn.dataset.idx);
   }));
+  // Close job button
+  tbody.querySelectorAll('.close-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const idx=+btn.dataset.idx;
+    const jobName = state.jobs[idx]?.name||'';
+    if(!confirm(`Mark "${jobName}" as closed?\n\nIt will be greyed out on the board this week and hidden from future weeks. All past assignments are preserved. You can reopen it anytime.`)) return;
+    state.jobs[idx].closed = true;
+    send({type:'update_job', idx, field:'closed', value:true});
+    renderBoard();
+  }));
+  // Reopen button
+  tbody.querySelectorAll('.reopen-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const idx=+btn.dataset.idx;
+    state.jobs[idx].closed = false;
+    send({type:'update_job', idx, field:'closed', value:false});
+    renderBoard();
+  }));
+  // Delete button — permanent, password protected
   tbody.querySelectorAll('.del-btn').forEach(btn=>btn.addEventListener('click',()=>{
     const idx=+btn.dataset.idx;
-    const jobName = state.jobs[idx]?.name || '';
-    if(!confirm(`Remove "${jobName}" from the job board?\n\nThis week's and past weeks' crew assignment history for this job will be kept as a record — only the active row will be removed.`)) return;
-    const pw = prompt('Enter admin password to confirm deletion:');
-    if (pw === null) return; // cancelled
+    const jobName = state.jobs[idx]?.name||'';
+    if(!confirm(`Permanently delete "${jobName}"?\n\nThis removes it from the job list. Past week assignment history is kept.`)) return;
+    const pw = prompt('Enter admin password to confirm:');
+    if (pw === null) return;
     send({type:'delete_job', idx, adminPw: pw});
   }));
 }
