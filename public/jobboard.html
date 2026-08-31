@@ -182,10 +182,10 @@
   .del-btn:hover { color: #ef4444; background: #fee2e2; }
   .reopen-btn { background: none; border: none; cursor: pointer; color: #6b7280; font-size: 11px; padding: 3px 6px; border-radius: var(--r); transition: background 0.12s; line-height: 1; }
   .reopen-btn:hover { background: #f3f4f6; }
-  /* Closed job row styling */
-  tr.job-row.job-closed td.meta { opacity: 0.4; text-decoration: line-through; }
+  /* Closed job row styling — only shown on past weeks */
+  tr.job-row.job-closed td.meta { opacity: 0.45; text-decoration: line-through; }
   tr.job-row.job-closed td.crew-cell,
-  tr.job-row.job-closed td.wknd-cell { opacity: 0.3; pointer-events: none; }
+  tr.job-row.job-closed td.wknd-cell { opacity: 0.6; background: #f9fafb; }
   /* Close/delete choice modal */
   .choice-modal-bg { display:none; position:fixed; inset:0; background:rgba(10,20,40,.45); z-index:300; align-items:center; justify-content:center; }
   .choice-modal-bg.open { display:flex; }
@@ -211,6 +211,7 @@
   .chip { background: var(--green-chip); color: #fff; font-size: 10.5px; font-weight: 500; padding: 2px 7px 2px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; line-height: 1.6; max-width: 120px; }
   .chip.wknd-chip   { background: var(--purple); }
   .chip.pinned-chip { background: rgba(0,0,0,0.32); }
+  .chip.closed-chip { background: #9ca3af; opacity: 0.7; }
   .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .chip .rm  { cursor: pointer; font-size: 13px; opacity: 0.7; flex-shrink: 0; }
   .chip .rm:hover { opacity: 1; }
@@ -584,33 +585,42 @@ function renderBoard() {
     thead.appendChild(tr);
   });
 
+  const curKey = currentWeekKey();
+  const isPastWeek = activeWeekKey < curKey;
+
   const tbody=document.getElementById('tbody'); tbody.innerHTML='';
   state.jobs.forEach((job,i)=>{
     const isClosed = !!job.closed;
+
+    // Closed jobs: hide completely on current week and future weeks
+    // Only show on past weeks (read-only reference)
+    if (isClosed && !isPastWeek) return;
+
     const tr=document.createElement('tr');
     tr.className='job-row' + (isClosed ? ' job-closed' : '');
     tr.dataset.idx=i;
     const hasContact = job.address||job.phone;
     tr.innerHTML=`
       <td class="meta name" style="white-space:nowrap">
-        <span contenteditable="true" data-field="name" data-idx="${i}" style="outline:none">${esc(job.name)}</span>
+        <span contenteditable="${!isClosed}" data-field="name" data-idx="${i}" style="outline:none">${esc(job.name)}</span>
         <span class="cust-info-btn" data-idx="${i}" title="${hasContact?'View contact info':'Add contact info'}" style="margin-left:4px;cursor:pointer;opacity:${hasContact?'0.8':'0.3'};font-size:11px">↗</span>
       </td>
-      <td class="meta code" contenteditable="true" data-field="code"  data-idx="${i}">${esc(job.code||'')}</td>
-      <td class="meta ins"  contenteditable="true" data-field="ins"   data-idx="${i}">${esc(job.ins)}</td>
-      <td class="meta est"  contenteditable="true" data-field="est"   data-idx="${i}">${esc(job.est)}</td>
-      <td class="meta comp" contenteditable="true" data-field="comp"  data-idx="${i}">${esc(job.comp)}</td>
-      <td class="meta note" contenteditable="true" data-field="notes" data-idx="${i}">${esc(job.notes)}</td>`;
+      <td class="meta code" contenteditable="${!isClosed}" data-field="code"  data-idx="${i}">${esc(job.code||'')}</td>
+      <td class="meta ins"  contenteditable="${!isClosed}" data-field="ins"   data-idx="${i}">${esc(job.ins)}</td>
+      <td class="meta est"  contenteditable="${!isClosed}" data-field="est"   data-idx="${i}">${esc(job.est)}</td>
+      <td class="meta comp" contenteditable="${!isClosed}" data-field="comp"  data-idx="${i}">${esc(job.comp)}</td>
+      <td class="meta note" contenteditable="${!isClosed}" data-field="notes" data-idx="${i}">${esc(job.notes)}</td>`;
     ALL_DAYS.forEach(day=>{
       const td=document.createElement('td');
       td.className=day==='Sat/Sun'?'wknd-cell':'crew-cell';
       td.dataset.idx=i; td.dataset.day=day;
-      if (!isClosed) renderCrewCell(td,i,day);
-      else td.innerHTML='<span style="font-size:10px;color:#9ca3af;padding:4px">closed</span>';
+      // Always render crew cells — closed past-week rows show chips read-only
+      renderCrewCell(td, i, day, isClosed);
       tr.appendChild(td);
     });
     const del=document.createElement('td'); del.className='del-cell meta';
     if (isClosed) {
+      // Past week — show Reopen button
       del.innerHTML=`<button class="reopen-btn" data-idx="${i}" title="Reopen this job">↩ Reopen</button>`;
     } else {
       del.innerHTML=`<button class="del-btn" data-idx="${i}" title="Close or delete this job">×</button>`;
@@ -649,19 +659,25 @@ function renderBoard() {
   }));
 }
 
-function renderCrewCell(td,i,day){
+function renderCrewCell(td, i, day, readOnly) {
   const cd=jobCD(i,day),isW=day==='Sat/Sun';
-  const chips=cd.names.map(n=>`<span class="chip${isW?' wknd-chip':''}"><span>${esc(n)}</span><span class="rm" data-name="${esc(n)}" data-idx="${i}" data-day="${esc(day)}">×</span></span>`).join('');
+  const chips=cd.names.map(n=>`<span class="chip${isW?' wknd-chip':''}${readOnly?' closed-chip':''}">
+    <span>${esc(n)}</span>
+    ${!readOnly?`<span class="rm" data-name="${esc(n)}" data-idx="${i}" data-day="${esc(day)}">×</span>`:''}
+  </span>`).join('');
   const note=cd.note?`<div class="cell-note-tag"><span class="cell-note-text" title="${esc(cd.note)}">${esc(cd.note)}</span></div>`:'';
-  td.innerHTML=`<div class="cell-body">${chips}${!chips?'<span class="add-hint">+ assign</span>':''}</div>${note}`;
-  td.querySelector('.cell-body').addEventListener('click',()=>openModal('job',i,null,day));
-  if(note) td.querySelector('.cell-note-text').addEventListener('click',e=>{e.stopPropagation();openModal('job',i,null,day);});
-  td.querySelectorAll('.rm').forEach(btn=>btn.addEventListener('click',e=>{
-    e.stopPropagation();
-    const c=jobCD(i,day); c.names=c.names.filter(n=>n!==btn.dataset.name);
-    const jobNameKey=(state.jobs[i]&&state.jobs[i].name)?state.jobs[i].name:String(i);
-    send({type:'update_cell',weekKey:activeWeekKey,key:cellKey(jobNameKey,day),cell:c}); renderCrewCell(td,i,day);
-  }));
+  const addHint = !readOnly && !chips ? '<span class="add-hint">+ assign</span>' : '';
+  td.innerHTML=`<div class="cell-body">${chips}${addHint}</div>${note}`;
+  if (!readOnly) {
+    td.querySelector('.cell-body').addEventListener('click',()=>openModal('job',i,null,day));
+    if(note) td.querySelector('.cell-note-text').addEventListener('click',e=>{e.stopPropagation();openModal('job',i,null,day);});
+    td.querySelectorAll('.rm').forEach(btn=>btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const c=jobCD(i,day); c.names=c.names.filter(n=>n!==btn.dataset.name);
+      const jobNameKey=(state.jobs[i]&&state.jobs[i].name)?state.jobs[i].name:String(i);
+      send({type:'update_cell',weekKey:activeWeekKey,key:cellKey(jobNameKey,day),cell:c}); renderCrewCell(td,i,day);
+    }));
+  }
 }
 
 function renderPinnedCell(td,rowName,day){
