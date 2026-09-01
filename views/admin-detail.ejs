@@ -63,7 +63,11 @@ const calcTotal   = calcReg+calcNonBill+calcBU+calcOff+calcLeave;
 %>
 <div class="info-grid">
   <div class="ib"><div class="l">Employee</div><div class="v" style="font-size:13px"><%=tc.employee_name%></div></div>
-  <div class="ib"><div class="l">Week</div><div class="v" style="font-size:12px"><%=new Date(tc.week_start instanceof Date ? tc.week_start : (String(tc.week_start).length===10 ? tc.week_start+'T12:00:00' : tc.week_start)).toLocaleDateString('en-US',{month:'short',day:'numeric'})%> – <%=new Date(tc.week_end instanceof Date ? tc.week_end : (String(tc.week_end).length===10 ? tc.week_end+'T12:00:00' : tc.week_end)).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})%></div></div>
+  <div class="ib"><div class="l">Week</div><div class="v" style="font-size:12px"><%=
+    new Date((tc.week_start instanceof Date ? tc.week_start.toISOString().split('T')[0] : String(tc.week_start).split('T')[0])+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
+  %> – <%=
+    new Date((tc.week_end instanceof Date ? tc.week_end.toISOString().split('T')[0] : String(tc.week_end).split('T')[0])+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+  %></div></div>
   <div class="ib"><div class="l">Total hrs</div><div class="v <%=calcTotal>40?'ot':''%>"><%=calcTotal.toFixed(2)%><%=calcTotal>40?' ⚠':''%></div></div>
   <div class="ib"><div class="l">Regular</div><div class="v"><%=calcReg>0?calcReg.toFixed(2):'—'%></div></div>
   <div class="ib"><div class="l">Shop</div><div class="v"><%=calcNonBill>0?calcNonBill.toFixed(2):'—'%></div></div>

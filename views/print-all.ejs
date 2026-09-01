@@ -65,7 +65,7 @@ tbody tr:last-child td{border:none}
 const DAYS=['sun','mon','tue','wed','thu','fri','sat'];
 const DAY_LBL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const fh=n=>(parseFloat(n)||0)>0?(parseFloat(n)).toFixed(2):'—';
-const fmtD=d=>{if(!d)return'—';try{const dt=d instanceof Date?d:new Date(typeof d==='string'&&d.length===10?d+'T12:00:00':d);return isNaN(dt)?'—':dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return'—';}};
+const fmtD=d=>{if(!d)return'—';try{const s=d instanceof Date?d.toISOString().split('T')[0]:String(d).split('T')[0];const dt=new Date(s+'T12:00:00');return isNaN(dt)?'—':dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return'—';}};
 
 timecards.forEach(function(tc, tcIdx){
   const calcReg     = (tc.rows||[]).filter(r=>r.section==='regular'&&!r.is_office&&!r.is_nonbill).reduce((s,r)=>s+(parseFloat(r.total_hrs)||0),0);
