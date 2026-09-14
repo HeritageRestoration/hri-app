@@ -77,10 +77,20 @@ function snapToSunday(dateStr) {
   return d.toISOString().split('T')[0];
 }
 
+// Helper — always derive week_end as the Saturday (6 days after Sunday)
+function deriveWeekEnd(weekStart) {
+  if (!weekStart) return weekStart;
+  const d = new Date(weekStart + 'T12:00:00');
+  if (isNaN(d)) return weekStart;
+  d.setDate(d.getDate() + 6);
+  return d.toISOString().split('T')[0];
+}
+
 // Auto-save draft
 app.post('/timecard/save', async (req, res) => {
   try {
-    const body = { ...req.body, week_start: snapToSunday(req.body.week_start) };
+    const weekStart = snapToSunday(req.body.week_start);
+    const body = { ...req.body, week_start: weekStart, week_end: deriveWeekEnd(weekStart) };
     const tcId = await db.upsertTimecard({ ...body, status: 'draft' });
     res.json({ ok: true, id: tcId });
   } catch (e) {
@@ -153,6 +163,7 @@ app.post('/timecard/submit', async (req, res) => {
   try {
     const { flags, ...data } = req.body;
     data.week_start = snapToSunday(data.week_start);
+    data.week_end   = deriveWeekEnd(data.week_start);
     const tcId = await db.upsertTimecard({ ...data, status: 'submitted' });
     await db.submitTimecard(tcId, flags || []);
     res.json({ ok: true, id: tcId });

@@ -174,6 +174,14 @@ async function initDB() {
   // TWEAK 1: Migrate cell keys from index-based to name-based
   await migrateCellKeys();
 
+  // Fix any timecards where week_end is not exactly 6 days after week_start
+  // This corrects records affected by the timezone bug
+  await pool.query(`
+    UPDATE timecards
+    SET week_end = (week_start::date + INTERVAL '6 days')::date
+    WHERE week_end::date != (week_start::date + INTERVAL '6 days')::date
+  `).catch(e => console.error('week_end fix error (non-fatal):', e.message));
+
   console.log('  Database ready.');
 }
 
