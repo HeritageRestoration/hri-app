@@ -260,18 +260,56 @@ async function upsertTimecard(data) {
     await client.query('BEGIN');
     let tcId = data.id;
     if (tcId) {
+      // Update existing record
       await client.query(
         `UPDATE timecards SET employee_name=$1, employee_email=$2, week_start=$3, week_end=$4,
            notes=$5, status=$6, updated_at=NOW() WHERE id=$7`,
         [data.employee_name, data.employee_email||'', data.week_start, data.week_end, data.notes||'', data.status||'draft', tcId]
       );
     } else {
-      const r = await client.query(
-        `INSERT INTO timecards (employee_name, employee_email, week_start, week_end, notes, status)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-        [data.employee_name, data.employee_email||'', data.week_start, data.week_end, data.notes||'', data.status||'draft']
+      // Before inserting, check if a draft already exists for this person+week
+      // This prevents duplicate drafts when the client loses track of the ID
+      const existing = await client.query(
+        `SELECT id FROM timecards 
+         WHERE (employee_name=$1 OR employee_name LIKE $2)
+         AND week_start=$3 AND status='draft'
+         ORDER BY updated_at DESC LIMIT 1`,
+        [data.employee_name, `${data.employee_name} %`, data.week_start]
       );
-      tcId = r.rows[0].id;
+      if (existing.rows[0]) {
+        // Reuse the existing draft
+        tcId = existing.rows[0].id;
+        await client.query(
+          `UPDATE timecards SET employee_email=$1, week_end=$2, notes=$3, updated_at=NOW() WHERE id=$4`,
+          [data.employee_email||'', data.week_end, data.notes||'', tcId]
+        );
+        // Delete any other duplicate drafts for this person+week
+        await client.query(
+          `DELETE FROM timecards WHERE employee_name=$1 AND week_start=$2 AND status='draft' AND id != $3`,
+          [data.employee_name, data.week_start, tcId]
+        );
+      } else {
+        // Also check if a submitted card exists — don't create a draft if already submitted
+        const submitted = await client.query(
+          `SELECT id FROM timecards
+           WHERE (employee_name=$1 OR employee_name LIKE $2)
+           AND week_start=$3 AND status='submitted' LIMIT 1`,
+          [data.employee_name, `${data.employee_name} %`, data.week_start]
+        );
+        if (submitted.rows[0]) {
+          // Already submitted — don't create a duplicate draft
+          tcId = submitted.rows[0].id;
+          await client.query('COMMIT');
+          return tcId;
+        }
+        // No existing draft or submitted card — create new
+        const r = await client.query(
+          `INSERT INTO timecards (employee_name, employee_email, week_start, week_end, notes, status)
+           VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+          [data.employee_name, data.employee_email||'', data.week_start, data.week_end, data.notes||'', data.status||'draft']
+        );
+        tcId = r.rows[0].id;
+      }
     }
 
     // Replace leave rows — track paid vs unpaid (Lack of Work = unpaid)

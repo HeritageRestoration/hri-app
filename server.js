@@ -215,6 +215,25 @@ app.post('/admin/login', (req, res) => {
   res.render('admin-login', { error: 'Wrong password' });
 });
 
+// Utility — clean up duplicate drafts, keeping most recent per person+week
+app.post('/admin/cleanup-drafts', requireAdmin, async (req, res) => {
+  try {
+    const dupes = await db.pool.query(`
+      DELETE FROM timecards
+      WHERE status = 'draft'
+        AND id NOT IN (
+          SELECT DISTINCT ON (employee_name, week_start) id
+          FROM timecards
+          WHERE status = 'draft'
+          ORDER BY employee_name, week_start, updated_at DESC
+        )
+      RETURNING id, employee_name, week_start
+    `);
+    console.log(`Cleaned up ${dupes.rows.length} duplicate draft(s)`);
+    res.json({ ok: true, deleted: dupes.rows.length, rows: dupes.rows });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 app.get('/admin/timecard/:id', requireAdmin, async (req, res) => {
   try {
     const tc = await db.getTimecardDetail(req.params.id);

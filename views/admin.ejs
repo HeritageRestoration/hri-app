@@ -68,6 +68,7 @@ tbody tr.newj td{background:#faf5ff}
   <a href="/timecard" class="nav-link">Time Card</a>
   <a href="/admin?pw=<%= pw %>" class="nav-link active">Admin</a>
   <div class="nav-spacer"></div>
+  <button onclick="cleanupDrafts()" style="font-size:11px;padding:6px 12px;background:rgba(255,255,255,.1);border:0.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.7);border-radius:5px;cursor:pointer;margin-right:6px" title="Remove duplicate draft timecards">🧹 Clean Drafts</button>
   <% if(typeof selectedWeek !== 'undefined' && selectedWeek) { %>
   <a href="/admin/print-all?pw=<%= pw %>&week=<%= selectedWeek %>" target="_blank" class="btn-primary" style="font-size:11px;padding:6px 12px;background:rgba(255,255,255,.15);border:0.5px solid rgba(255,255,255,.3);margin-right:6px">🖨 Print All</a>
   <% } %>
@@ -221,6 +222,18 @@ tbody tr.newj td{background:#faf5ff}
 
 </div>
 <script>
+async function cleanupDrafts() {
+  if (!confirm('Remove all duplicate draft timecards, keeping only the most recent one per employee per week?')) return;
+  try {
+    const r = await fetch(`/admin/cleanup-drafts?pw=<%= pw %>`, { method: 'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      alert(`Done — ${j.deleted} duplicate draft${j.deleted !== 1 ? 's' : ''} removed.`);
+      location.reload();
+    } else { alert('Error: ' + j.error); }
+  } catch(e) { alert('Request failed — please try again'); }
+}
+
 function aTab(t){
   document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.apane').forEach(p=>p.classList.remove('active'));
