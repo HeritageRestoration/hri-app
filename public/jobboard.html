@@ -217,8 +217,10 @@
   .chip .rm:hover { opacity: 1; }
   .cell-note-tag { width: 100%; margin-top: 2px; }
   .cell-note-text { font-size: 10px; color: var(--amber); background: var(--amber-bg); border: 1px solid #f0c040; border-radius: 4px; padding: 2px 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font-style: italic; }
-  /* Notes hidden by default — JS adds .notes-visible to body to show them */
+  body.notes-visible .cell-note-text { white-space: normal; text-overflow: unset; overflow: visible; display: block; }
+  /* Notes hidden by default — only dot shows. JS adds .notes-visible to body to show full text */
   body:not(.notes-visible) .cell-note-tag { display: none; }
+  body:not(.notes-visible) .cell-note-text { display: none; }
   /* Dot indicator shown when notes are hidden */
   .note-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f0c040; margin-left: 4px; margin-bottom: 1px; vertical-align: middle; flex-shrink: 0; cursor: pointer; title: 'This cell has a note'; }
   body.notes-visible .note-dot { display: none; }
