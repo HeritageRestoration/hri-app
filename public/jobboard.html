@@ -217,6 +217,15 @@
   .chip .rm:hover { opacity: 1; }
   .cell-note-tag { width: 100%; margin-top: 2px; }
   .cell-note-text { font-size: 10px; color: var(--amber); background: var(--amber-bg); border: 1px solid #f0c040; border-radius: 4px; padding: 2px 6px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font-style: italic; }
+  /* Notes hidden by default — JS adds .notes-visible to body to show them */
+  body:not(.notes-visible) .cell-note-tag { display: none; }
+  /* Dot indicator shown when notes are hidden */
+  .note-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f0c040; margin-left: 4px; margin-bottom: 1px; vertical-align: middle; flex-shrink: 0; cursor: pointer; title: 'This cell has a note'; }
+  body.notes-visible .note-dot { display: none; }
+  /* Show notes toggle button */
+  .btn-notes-toggle { background: rgba(255,255,255,.1); border: 0.5px solid rgba(255,255,255,.2); color: rgba(255,255,255,.75); border-radius: var(--r); padding: 5px 11px; font-family: 'DM Sans',sans-serif; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background .15s; }
+  .btn-notes-toggle:hover { background: rgba(255,255,255,.18); }
+  .btn-notes-toggle.active { background: rgba(240,192,64,.2); border-color: rgba(240,192,64,.5); color: #f0c040; }
   .add-hint { font-size: 10px; color: var(--green); opacity: 0.4; padding: 4px 2px; align-self: center; }
   td.wknd-cell   .add-hint { color: var(--purple); }
   td.pinned-crew .add-hint { color: var(--gray-600); }
@@ -286,6 +295,10 @@
     <button class="week-nav-btn" id="btnNextWeek" title="Next week">&#8594;</button>
   </div>
 
+  <button class="btn-notes-toggle" id="btnNotesToggle" onclick="toggleNotes()" title="Toggle note visibility">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <span id="notesToggleLabel">Show notes</span>
+  </button>
   <button class="btn-add" id="btnAddJob">＋ Add job</button>
 </div>
 
@@ -665,9 +678,10 @@ function renderCrewCell(td, i, day, readOnly) {
     <span>${esc(n)}</span>
     ${!readOnly?`<span class="rm" data-name="${esc(n)}" data-idx="${i}" data-day="${esc(day)}">×</span>`:''}
   </span>`).join('');
+  const noteDot = cd.note ? `<span class="note-dot" title="${esc(cd.note)}"></span>` : '';
   const note=cd.note?`<div class="cell-note-tag"><span class="cell-note-text" title="${esc(cd.note)}">${esc(cd.note)}</span></div>`:'';
   const addHint = !readOnly && !chips ? '<span class="add-hint">+ assign</span>' : '';
-  td.innerHTML=`<div class="cell-body">${chips}${addHint}</div>${note}`;
+  td.innerHTML=`<div class="cell-body">${chips}${noteDot}${addHint}</div>${note}`;
   if (!readOnly) {
     td.querySelector('.cell-body').addEventListener('click',()=>openModal('job',i,null,day));
     if(note) td.querySelector('.cell-note-text').addEventListener('click',e=>{e.stopPropagation();openModal('job',i,null,day);});
@@ -683,8 +697,9 @@ function renderCrewCell(td, i, day, readOnly) {
 function renderPinnedCell(td,rowName,day){
   const cd=pinCD(rowName,day);
   const chips=cd.names.map(n=>`<span class="chip pinned-chip"><span>${esc(n)}</span><span class="rm" data-name="${esc(n)}">×</span></span>`).join('');
+  const noteDot = cd.note ? `<span class="note-dot" title="${esc(cd.note)}"></span>` : '';
   const note=cd.note?`<div class="cell-note-tag"><span class="cell-note-text" title="${esc(cd.note)}">${esc(cd.note)}</span></div>`:'';
-  td.innerHTML=`<div class="cell-body">${chips}${!chips?'<span class="add-hint">+ assign</span>':''}</div>${note}`;
+  td.innerHTML=`<div class="cell-body">${chips}${noteDot}${!chips?'<span class="add-hint">+ assign</span>':''}</div>${note}`;
   td.querySelector('.cell-body').addEventListener('click',()=>openModal('pinned',null,rowName,day));
   if(note) td.querySelector('.cell-note-text').addEventListener('click',e=>{e.stopPropagation();openModal('pinned',null,rowName,day);});
   td.querySelectorAll('.rm').forEach(btn=>btn.addEventListener('click',e=>{
@@ -754,6 +769,27 @@ document.getElementById('manageBackdrop').addEventListener('click',e=>{
   if(e.target===document.getElementById('manageBackdrop')){document.getElementById('manageBackdrop').classList.remove('open');document.getElementById('backdrop').classList.add('open');}
 });
 document.getElementById('btnAddJob').addEventListener('click',()=>send({type:'add_job'}));
+
+// ── Show / Hide notes toggle ──────────────────────────────────────────────────
+function toggleNotes() {
+  const isOn = document.body.classList.toggle('notes-visible');
+  const btn  = document.getElementById('btnNotesToggle');
+  const lbl  = document.getElementById('notesToggleLabel');
+  lbl.textContent = isOn ? 'Hide notes' : 'Show notes';
+  btn.classList.toggle('active', isOn);
+  try { localStorage.setItem('jb-notes-visible', isOn ? '1' : '0'); } catch(e) {}
+}
+
+// Restore preference on load
+try {
+  if (localStorage.getItem('jb-notes-visible') === '1') {
+    document.body.classList.add('notes-visible');
+    const btn = document.getElementById('btnNotesToggle');
+    const lbl = document.getElementById('notesToggleLabel');
+    if (btn) btn.classList.add('active');
+    if (lbl) lbl.textContent = 'Hide notes';
+  }
+} catch(e) {}
 
 // ── Close / Delete choice modal ───────────────────────────────────────────────
 let choiceIdx = null;
